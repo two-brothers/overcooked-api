@@ -1,2 +1,13 @@
 # Webstorm IDE
 .idea
+
+# The package.json is created by the initialisation script
+# so it is not part of the repo
+package.json
+package-lock.json
+
+# npm packages
+node_modules
+
+# log files
+log

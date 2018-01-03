@@ -1,19 +1,19 @@
-# Seed Project
+# Seed Project: Express
 
 ## Overview
 
-Initialising a new project often has a number of standard steps.
+This branch creates a basic express server featuring:
+* gzip compression
+* server-side sessions with:
+   * A random 256-bit secret
+   * An expiration of 30 mins since last use
+* logging to the `log` directory (cleared with each build)
+* a default `index.html`
+* an initial route (`/dummy`)
+* a `404` error handler for undefined routes
+* a `500` error handler for unhandled errors in defined routes
 
-However, in my experience, the initialisation is always slightly different depending on the 
-particular technology or framework. Moreover, integrating the different technologies requires some
-configuration.
+## Usage
 
-This project creates a seed project for every combination of technologies (that I use, obviously),
-and explicitly lists the steps required.
-
-## Structure
-
-Each git branch corresponds to a different technology (frontend, backend, testing, database, authentication, etc)
-or a combination of technologies.
-
-The README in each branch lists the exact steps taken to produce the code on that branch, and how to use the commands.
+1. Run the `initialise.sh` script
+1. Use the npm script commands to build/serve the server
