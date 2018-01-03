@@ -8,6 +8,7 @@ const http = require('http');
 const port = process.env.PORT || 3000;
 app.set('port', port);
 const server = http.createServer(app);
+
 server.listen(port);
 
 /*** HANDLE EVENTS ***/
@@ -33,3 +34,5 @@ server.on('error', error => {
             throw error;
     }
 });
+
+module.exports = server; // for testing

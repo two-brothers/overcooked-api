@@ -10,7 +10,8 @@ echo -n '{
   "author": "Nikesh Nazareth",
   "license": "ISC",
   "scripts": {
-    "serve": "scripts/build_and_serve.sh"
+    "serve": "scripts/build_and_serve.sh",
+    "test": "scripts/test.sh"
   }
 }' > package.json
 
@@ -28,4 +29,13 @@ packages=(
 )
 for p in ${packages[*]}; do
   npm install --save $p@latest
+done;
+
+dev_packages=(
+  'mocha'
+  'chai'
+  'chai-http'
+)
+for p in ${dev_packages[*]}; do
+  npm install --save-dev $p@latest
 done;
