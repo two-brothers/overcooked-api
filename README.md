@@ -1,4 +1,4 @@
-# Seed Project: Express
+# Seed Project: Express-Mocha
 
 ## Overview
 
@@ -13,7 +13,11 @@ This branch creates a basic express server featuring:
 * a `404` error handler for undefined routes
 * a `500` error handler for unhandled errors in defined routes
 
+It also include mocha integration tests for the `/dummy` route
+
 ## Usage
 
 1. Run the `initialise.sh` script
-1. Use the npm script commands to build/serve the server
+1. Use the npm script commands to
+   * build/serve the server
+   * run the mocha tests
