@@ -28,7 +28,6 @@ packages=(
   'secure-random'
   'mongoose'
   'connect-mongo'
-  'mongod'
 )
 for p in ${packages[*]}; do
   npm install --save $p@latest
