@@ -10,6 +10,7 @@ echo -n '{
   "author": "Nikesh Nazareth",
   "license": "ISC",
   "scripts": {
+    "db": "scripts/run_db.sh",
     "serve": "scripts/build_and_serve.sh",
     "test": "scripts/test.sh"
   }
@@ -26,6 +27,8 @@ packages=(
   'file-stream-rotator'
   'path'
   'secure-random'
+  'mongoose'
+  'connect-mongo'
 )
 for p in ${packages[*]}; do
   npm install --save $p@latest
@@ -39,3 +42,12 @@ dev_packages=(
 for p in ${dev_packages[*]}; do
   npm install --save-dev $p@latest
 done;
+
+echo "Setting up the mongoose database..."
+echo -n "
+const name = 'mongodb://localhost/$projname';
+module.exports = name;
+" > db.name.js
+
+mkdir -p data/db
+mkdir -p log/db
