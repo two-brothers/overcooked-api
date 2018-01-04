@@ -8,6 +8,9 @@ const random = require('secure-random');
 const FileStreamRotator = require('file-stream-rotator');
 const morgan = require('morgan');
 const path = require('path');
+const swaggerUI = require('swagger-ui-express');
+const YAML = require('yamljs');
+
 const dummy = require('./dummy/module');
 
 /*** SET UP SESSION ***/
@@ -49,6 +52,11 @@ app.get('/', (req, res, next) => {
 });
 app.use('/dummy', dummy.route);
 app.use(express.static(path.join(__dirname, 'static')));
+
+/*** API Documentation ***/
+
+const APISpec = YAML.load('./api/api.yaml');
+app.use('/api', swaggerUI.serve, swaggerUI.setup(APISpec));
 
 /*** ERROR HANDLING ***/
 

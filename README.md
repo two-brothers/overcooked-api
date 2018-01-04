@@ -1,4 +1,4 @@
-# Seed Project: Express
+# Seed Project: Express Swagger
 
 ## Overview
 
@@ -13,7 +13,14 @@ This branch creates a basic express server featuring:
 * a `404` error handler for undefined routes
 * a `500` error handler for unhandled errors in defined routes
 
+It serves the Swagger documentation at `/api`
+
 ## Usage
 
 1. Run the `initialise.sh` script
 1. Use the npm script commands to build/serve the server
+
+## Extend
+
+1. Add new routes to `server.js` appropriate
+1. Update the `api/api.yaml` file to match

@@ -25,6 +25,8 @@ packages=(
   'file-stream-rotator'
   'path'
   'secure-random'
+  'swagger-ui-express'
+  'yamljs'
 )
 for p in ${packages[*]}; do
   npm install --save $p@latest
