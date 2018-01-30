@@ -1,0 +1,11 @@
+/dummy:
+  get:
+    summary: Gets a dummy response object
+    description: The response is the object `{dummyResponse: 'Dum de dum dum'}` (wrapped in a `data` field)
+    produces:
+      - application/json
+    responses:
+      200:
+        description: OK
+      500:
+        description: Unexpected server error

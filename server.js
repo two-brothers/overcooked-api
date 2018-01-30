@@ -9,9 +9,9 @@ const FileStreamRotator = require('file-stream-rotator');
 const morgan = require('morgan');
 const path = require('path');
 const swaggerUI = require('swagger-ui-express');
-const YAML = require('yamljs');
 
 const dummy = require('./dummy/module');
+const api = require('./api/module');
 
 /*** SET UP SESSION ***/
 
@@ -55,8 +55,7 @@ app.use(express.static(path.join(__dirname, 'static')));
 
 /*** API Documentation ***/
 
-const APISpec = YAML.load('./api/api.yaml');
-app.use('/api', swaggerUI.serve, swaggerUI.setup(APISpec));
+app.use('/api', swaggerUI.serve, swaggerUI.setup(api.json));
 
 /*** ERROR HANDLING ***/
 
