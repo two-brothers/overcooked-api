@@ -1,0 +1,28 @@
+DummyRecord:
+  required:
+    - id
+    - name
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+
+DummyRecords:
+  type: array
+  items:
+    $ref: '#/definitions/DummyRecord'
+
+Name:
+  required:
+    - name
+  properties:
+    name:
+      type: string
+
+Error:
+  properties:
+    code:
+      type: string
+    message:
+      type: string

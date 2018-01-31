@@ -1,11 +1,74 @@
 /dummy:
   get:
-    summary: Gets a dummy response object
-    description: The response is the object `{dummyResponse: 'Dum de dum dum'}` (wrapped in a `data` field)
-    produces:
-      - application/json
+    summary: Get the dummy records
     responses:
       200:
-        description: OK
+        description: A list of dummy records
+        schema:
+          $ref: '#/definitions/DummyRecords'
       500:
-        description: Unexpected server error
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+  post:
+    summary: Create a dummy record
+    description: Adds a new record to the list
+    parameters:
+      - name: name
+        in: body
+        required: true
+        description: The name of the record
+        schema:
+          $ref: '#/definitions/Name'
+    responses:
+      200:
+        description: The newly created record
+        schema:
+          $ref: '#/definitions/DummyRecord'
+      400:
+        description: Invalid dummy record
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+/dummy/{id}:
+  parameters:
+      - name: id
+        in: path
+        required: true
+        description: The ID of the record
+        type: string
+  get:
+    summary: Gets the specified dummy record
+    responses:
+      200:
+        description: A dummy record
+        schema:
+          $ref: '#/definitions/DummyRecord'
+      404:
+        $ref: '#/responses/DummyRecordDoesNotExistsResponse'
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+  put:
+    summary: Change the specified dummy record
+    parameters:
+      - name: name
+        in: body
+        required: true
+        description: The new name of the record
+        schema:
+          $ref: '#/definitions/Name'
+    responses:
+      204:
+        description: The dummy record was successfully updated
+      400:
+        description: Invalid update to the dummy record
+      404:
+        $ref: '#/responses/DummyRecordDoesNotExistsResponse'
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+  delete:
+    summary: Remove the specified dummy record
+    responses:
+      204:
+        description: The dummy record was successfully deleted
+      404:
+        $ref: '#/responses/DummyRecordDoesNotExistsResponse'
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'

@@ -9,3 +9,5 @@ schemes:
   - http
 
 paths: 'api/dummy-path.yaml'
+definitions: 'api/definitions.yaml'
+responses: 'api/responses.yaml'
