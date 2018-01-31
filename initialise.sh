@@ -10,7 +10,9 @@ echo -n '{
   "author": "Nikesh Nazareth",
   "license": "ISC",
   "scripts": {
-    "serve": "scripts/build_and_serve.sh"
+    "db": "scripts/run_db.sh",
+    "serve": "scripts/build_and_serve.sh",
+    "test": "scripts/test.sh"
   }
 }' > package.json
 
@@ -27,7 +29,28 @@ packages=(
   'secure-random'
   'swagger-ui-express'
   'yamljs'
+  'mongoose'
+  'connect-mongo'
 )
 for p in ${packages[*]}; do
   npm install --save $p@latest
 done;
+
+dev_packages=(
+  'chai'
+  'chai-http'
+  'mocha'
+)
+for p in ${dev_packages[*]}; do
+  npm install --save-dev $p@latest
+done;
+npm install --save-dev mockgoose@6.0.8; # The latest version (7.3.3) throw errors
+
+echo "Setting up the mongoose database..."
+echo -n "
+const name = 'mongodb://localhost/$projname';
+module.exports = name;
+" > db.name.js
+
+mkdir -p data/db
+mkdir -p log/db

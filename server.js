@@ -9,13 +9,23 @@ const FileStreamRotator = require('file-stream-rotator');
 const morgan = require('morgan');
 const path = require('path');
 const swaggerUI = require('swagger-ui-express');
+const mongoose = require('mongoose');
+const MongoStore = require('connect-mongo')(session);
 
 const dummy = require('./dummy/module');
 const api = require('./api/module');
+const DBNAME = require('./db.name.js');
+
+/*** CONNECT TO DB ***/
+
+mongoose.Promise = global.Promise;
+mongoose.connect(DBNAME)
+    .catch((err) => console.error(err));
 
 /*** SET UP SESSION ***/
 
 const app = express();
+
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
@@ -30,7 +40,7 @@ app.use(session({
         secure: true, // only send cookies over https,
         maxAge: 1000 * 60 * 30 // 30 minutes
     },
-    // TODO: add a session store (the default Memory Store does not scale and has memory leaks)
+    store: new MongoStore({mongooseConnection: mongoose.connection})
 }));
 app.disable('x-powered-by'); // Don't reveal that we're using Express
 
