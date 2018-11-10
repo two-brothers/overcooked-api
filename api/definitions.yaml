@@ -2,14 +2,16 @@ Ingredient:
   required:
     - id
     - name
-    - namePlural
   properties:
     id:
       type: string
     name:
-      type: string
-    namePlural:
-      type: string
+      type: object
+      properties:
+        singular:
+          type: string
+        plural:
+          type: string
 
 Ingredients:
   type: array
@@ -18,12 +20,12 @@ Ingredients:
 
 Name:
   required:
-    - name
-    - namePlural
+    - singular
+    - plural
   properties:
-    name:
+    singular:
       type: string
-    namePlural:
+    plural:
       type: string
 
 Error:
