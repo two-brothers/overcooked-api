@@ -4,7 +4,7 @@ info:
   description: The API for the Overcooked Project
   version: 1.0.0
 
-host: localhost:3000
+host: overcooked.nikeshnazareth.com
 schemes:
   - http
 
