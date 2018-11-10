@@ -1,13 +1,13 @@
 swagger: "2.0"
 info:
-  title: Seed API
-  description: The API for the Express Seed project
+  title: Overcooked API
+  description: The API for the Overcooked Project
   version: 1.0.0
 
 host: localhost:3000
 schemes:
   - http
 
-paths: 'api/dummy-path.yaml'
+paths: 'api/ingredients-path.yaml'
 definitions: 'api/definitions.yaml'
 responses: 'api/responses.yaml'

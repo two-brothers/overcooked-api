@@ -1,0 +1,74 @@
+/ingredients:
+  get:
+    summary: Get all ingredients
+    responses:
+      200:
+        description: A list of ingredients
+        schema:
+          $ref: '#/definitions/Ingredients'
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+  post:
+    summary: Create an ingredient
+    description: Adds a new ingredient to the database
+    parameters:
+      - name: name
+        in: body
+        required: true
+        description: The name of the ingredient
+        schema:
+          $ref: '#/definitions/Name'
+    responses:
+      200:
+        description: The newly created ingredient
+        schema:
+          $ref: '#/definitions/Ingredient'
+      400:
+        description: Invalid ingredient
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+/ingredients/{id}:
+  parameters:
+      - name: id
+        in: path
+        required: true
+        description: The ID of the ingredient
+        type: string
+  get:
+    summary: Gets the specified ingredient
+    responses:
+      200:
+        description: The ingredient
+        schema:
+          $ref: '#/definitions/Ingredient'
+      404:
+        $ref: '#/responses/IngredientDoesNotExistResponse'
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+  put:
+    summary: Change the specified ingredient
+    parameters:
+      - name: name
+        in: body
+        required: false
+        description: The new name of the ingredient
+        schema:
+          $ref: '#/definitions/Name'
+    responses:
+      204:
+        description: The ingredient was successfully updated
+      400:
+        description: Invalid update to the ingredient
+      404:
+        $ref: '#/responses/IngredientDoesNotExistsResponse'
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'
+  delete:
+    summary: Remove the specified ingredient
+    responses:
+      204:
+        description: The ingredient was successfully deleted
+      404:
+        $ref: '#/responses/IngredientDoesNotExistResponse'
+      500:
+        $ref: '#/responses/UnexpectedServerErrorResponse'

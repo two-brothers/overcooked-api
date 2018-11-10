@@ -2,5 +2,6 @@ UnexpectedServerErrorResponse:
   description: An unexpected server error occured
   schema:
     $ref: '#/definitions/Error'
-DummyRecordDoesNotExistsResponse:
-  description: The specified Dummy Record does not exist
+
+IngredientDoesNotExistResponse:
+  description: The specified ingredient does not exist

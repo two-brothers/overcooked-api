@@ -1,23 +1,29 @@
-DummyRecord:
+Ingredient:
   required:
     - id
     - name
+    - namePlural
   properties:
     id:
       type: string
     name:
       type: string
+    namePlural:
+      type: string
 
-DummyRecords:
+Ingredients:
   type: array
   items:
-    $ref: '#/definitions/DummyRecord'
+    $ref: '#/definitions/Ingredient'
 
 Name:
   required:
     - name
+    - namePlural
   properties:
     name:
+      type: string
+    namePlural:
       type: string
 
 Error:
