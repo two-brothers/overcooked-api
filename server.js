@@ -58,7 +58,7 @@ app.use(morgan('combined', {stream: accessLogStream}));
 /*** ROUTES ***/
 
 app.get('/', (req, res, next) => {
-    res.redirect('/index.html');
+    res.redirect('/api');
 });
 app.use('/ingredients', ingredients.route);
 app.use(express.static(path.join(__dirname, 'static')));
