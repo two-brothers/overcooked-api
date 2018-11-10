@@ -7,7 +7,7 @@ const mockgoose = require('mockgoose');
 mongoose.Promise = global.Promise;
 
 const mochaExt = require('../mocha.extensions');
-const Dummy = require('./dummy.model');
+const Ingredient = require('./ingredient.model');
 
 const DBNAME = 'TESTINGDB';
 const should = chai.should();
@@ -15,13 +15,12 @@ chai.use(chaiHttp);
 
 let server;
 
-describe('/dummy endpoint', () => {
-    const endpoint = '/dummy';
-    const dummyNames = [
-        'Alice',
-        'Bob',
-        'Charlie',
-        'Diane'
+describe('/ingredients endpoint', () => {
+    const endpoint = '/ingredients';
+    const ingredients = [
+        {singular: 'onion', plural: 'onions'},
+        {singular: 'sugar', plural: 'sugar'},
+        {singular: 'egg', plural: 'eggs'}
     ];
 
     let request;
@@ -49,12 +48,12 @@ describe('/dummy endpoint', () => {
             .catch(done)
     });
 
-    // add the dummy records
+    // add the ingredients
     beforeEach(done => {
         const creationPromises =
-            dummyNames
+            ingredients
                 .map(n => ({name: n}))
-                .map(record => Dummy.create(record));
+                .map(record => Ingredient.create(record));
 
         Promise
             .all(creationPromises)
@@ -62,19 +61,28 @@ describe('/dummy endpoint', () => {
             .then(done)
             .catch(done);
     });
-    // remove the dummy records
+    // remove the ingredients
     afterEach(done => mockgoose.reset(done));
 
-    describe('All records', () => {
+    describe('/', () => {
         describe('GET', () => {
-            it('should return the dummy records', done => {
+            it('should return the ingredients', done => {
                 request
                     .get(endpoint)
                     .then(res => {
                         res.status.should.equal(200);
                         res.body.data.should.not.equal(null);
                         const names = res.body.data.map(record => record.name);
-                        names.should.have.members(dummyNames);
+                        names.length.should.equal(ingredients.length);
+                        names.forEach(name => {
+                            name.singular.should.exist;
+                            name.plural.should.exist;
+                            const matching = ingredients.filter((ing) =>
+                                ing.singular === name.singular &&
+                                ing.plural === name.plural
+                            );
+                            matching.length.should.equal(1);
+                        })
                     })
                     .then(done)
                     .catch(done);
@@ -83,6 +91,12 @@ describe('/dummy endpoint', () => {
 
         describe('POST', () => {
             it('should return a "Bad Request" error if the new name is not specified', done => {
+                request.post(endpoint)
+                    .then(res => console.log(res))
+                    .then(() => null)
+                    .then(done)
+                    .catch(done);
+
                 mochaExt.expectErrorResponse(request.post(endpoint), null, 400, done)
             });
 
@@ -90,17 +104,40 @@ describe('/dummy endpoint', () => {
                 mochaExt.expectErrorResponse(request.post(endpoint), {name: null}, 400, done)
             });
 
+            it('should return a "Bad Request" error if the new name has no singular form', done => {
+                mochaExt.expectErrorResponse(request.post(endpoint), {name: {plural: 'tortillas'}}, 400, done)
+            });
+
+            it('should return a "Bad Request" error if the singular form of the new name is null', done => {
+                mochaExt.expectErrorResponse(request.post(endpoint), {
+                    name: {
+                        singular: null,
+                        plural: 'tortillas'
+                    }
+                }, 400, done)
+            });
+
+            it('should return a "Bad Request" error if the new name has no plural form', done => {
+                mochaExt.expectErrorResponse(request.post(endpoint), {name: {singular: 'tortilla'}}, 400, done)
+            });
+
+            it('should return a "Bad Request" error if the plural form of the new name is null', done => {
+                mochaExt.expectErrorResponse(request.post(endpoint), {
+                    name: {singular: 'tortilla', plural: null}
+                }, 400, done)
+            });
+
             it('should add a well-specified record to the database', done => {
-                const newName = 'Zoltan';
+                const newName = {singular: 'tortilla', plural: 'tortillas'};
                 request
                     .post(endpoint)
                     .send({name: newName})
                     .then(res => {
-                        res.status.should.equal(200)
+                        res.status.should.equal(200);
                         res.body.data.should.not.equal(null);
                         res.body.data.name.should.equal(newName);
                     })
-                    .then(() => Dummy.findOne({name: newName}))
+                    .then(() => Ingredient.findOne({name: newName}))
                     .then(record => record.should.not.equal(null))
                     .then(() => null)
                     .then(done)
@@ -121,7 +158,7 @@ describe('/dummy endpoint', () => {
         });
     });
 
-    describe('Specific record', () => {
+    xdescribe('Specific record', () => {
         const invalid_id = '123456789012345678901234';
         const invalid_endpoint = `${endpoint}/${invalid_id}`;
         let valid_id;
@@ -229,15 +266,15 @@ describe('/dummy endpoint', () => {
 
             describe('valid ID', () => {
                 it('should delete the specified record', done => {
-                   request
-                       .delete(valid_endpoint)
-                       .then(() => Dummy.findById(valid_id))
-                       .then(record => should.equal(record, null))
-                       .then(() => Dummy.find({}))
-                       .then(records => records.length.should.equal(dummyNames.length - 1))
-                       .then(() => null)
-                       .then(done)
-                       .catch(done);
+                    request
+                        .delete(valid_endpoint)
+                        .then(() => Dummy.findById(valid_id))
+                        .then(record => should.equal(record, null))
+                        .then(() => Dummy.find({}))
+                        .then(records => records.length.should.equal(dummyNames.length - 1))
+                        .then(() => null)
+                        .then(done)
+                        .catch(done);
                 });
             });
         });
