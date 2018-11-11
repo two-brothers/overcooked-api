@@ -20,6 +20,7 @@ const DBNAME = require('./db.name.js');
 
 mongoose.Promise = global.Promise;
 mongoose.connect(DBNAME)
+    .then(() => console.log('Database connected'))
     .catch((err) => console.error(err));
 
 /*** SET UP SESSION ***/

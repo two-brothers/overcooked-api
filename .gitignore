@@ -5,7 +5,6 @@
 # so they are not part of the repo
 package.json
 package-lock.json
-db.name.js
 
 # npm packages
 node_modules
