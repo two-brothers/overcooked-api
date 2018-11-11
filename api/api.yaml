@@ -6,7 +6,7 @@ info:
 
 host: overcooked.nikeshnazareth.com
 schemes:
-  - http
+  - https
 
 paths: 'api/ingredients-path.yaml'
 definitions: 'api/definitions.yaml'
