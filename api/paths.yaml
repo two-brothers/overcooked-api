@@ -1,0 +1,19 @@
+# CREATE a recipe
+/recipes:
+  $ref: '#/recipes/RecipesPath'
+
+# READ, UPDATE or DELETE a recipe
+/recipes/{:id}:
+  $ref: '#/recipes/RecipesByIdPath'
+
+# READ a list of recipes
+/recipes/at/{:page}:
+  $ref: '#/recipes/RecipesByPage'
+
+# CREATE a food record
+/food:
+  $ref: '#/food/FoodPath'
+
+# READ, UPDATE or DELETE a food record
+/food/{:id}:
+  $ref: '#/food/FoodRecordByIdPath'

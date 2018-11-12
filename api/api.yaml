@@ -8,6 +8,8 @@ host: overcooked.nikeshnazareth.com
 schemes:
   - https
 
-paths: 'api/ingredients-path.yaml'
+paths: 'api/paths.yaml'
+recipes: 'api/recipes.yaml'
+food: 'api/food.yaml'
 definitions: 'api/definitions.yaml'
-responses: 'api/responses.yaml'
+errors: 'api/errors.yaml'

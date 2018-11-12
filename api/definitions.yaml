@@ -1,36 +1,105 @@
-Ingredient:
+Recipe:
   required:
-    - id
-    - name
+    - title
+    - prepTime
+    - cookTime
+    - ingredientSections
   properties:
     id:
+      $ref: '#/definitions/ID'
+    title:
       type: string
-    name:
-      type: object
-      properties:
-        singular:
-          type: string
-        plural:
-          type: string
+    serves:
+      $ref: '#/definitions/Quantity'
+    makes:
+      $ref: '#/definitions/Quantity'
+    prepTime:
+      $ref: '#/definitions/Duration'
+    cookTime:
+      $ref: '#/definitions/Duration'
+    ingredient_sections:
+      type: array
+      items:
+        $ref: '#/definitions/IngredientSection'
+    method:
+      type: array
+      items:
+        type: string
+    reference_url:
+      type: string
+    last_updated:
+      $ref: '#/definitions/Timestamp'
 
-Ingredients:
-  type: array
-  items:
-    $ref: '#/definitions/Ingredient'
+IngredientSection:
+  required:
+    - ingredients
+  properties:
+    heading:
+      type: string
+    ingredients:
+      type: array
+      items:
+        $ref: '#/definitions/Ingredient'
+
+Ingredient:
+  required:
+    - amount
+    - unit
+    - foodID
+  properties:
+    amount:
+      $ref: '#/definitions/Quantity'
+    unit_id:
+      $ref: '#/definitions/UnitID'
+    alternative_unit_id:
+      $ref: '#/definitions/UnitID'
+    foodID:
+      $ref: '#/definitions/ID'
+
+Food:
+  required:
+    - name
+    - conversions
+  properties:
+    id:
+      $ref: '#/definitions/ID'
+    name:
+      $ref: '#/definitions/Name'
+    conversions:
+      type: array
+      items:
+        type: object
+        required:
+          - unit
+          - ratio
+        properties:
+          unit_id:
+            $ref: '#/definitions/UnitID'
+          ratio:
+            type: number
+
+ID:
+  type: string
+  example: '< Set by the server >'
 
 Name:
-  required:
-    - singular
-    - plural
   properties:
     singular:
       type: string
     plural:
       type: string
 
-Error:
-  properties:
-    code:
-      type: string
-    message:
-      type: string
+Quantity:
+  type: number
+
+# In mins
+Duration:
+  type: number
+
+# The app uses a hardcoded enum to describe units
+UnitID:
+  type: number
+
+Timestamp:
+  type: number
+  example: '< Set by the server >'

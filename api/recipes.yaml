@@ -1,0 +1,144 @@
+# CREATE a recipe
+RecipesPath:
+  post:
+    tags:
+      - Recipes
+    summary: Create a new recipe
+    parameters:
+      - name: recipe
+        in: body
+        required: true
+        description: The new recipe
+        schema:
+          $ref: '#/definitions/Recipe'
+    responses:
+      200:
+        description: The newly created recipe
+        schema:
+          $ref: '#/definitions/Recipe'
+      400:
+        $ref: '#/recipes/InvalidRecipeStructureResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
+# READ, UPDATE or DELETE a recipe
+RecipesByIdPath:
+  get:
+    tags:
+      - Recipes
+    summary: Get the specified recipe and the required food items
+    parameters:
+      - $ref: '#/recipes/RecipeIDParameter'
+    responses:
+      200:
+        description: The complete recipe
+        schema:
+          type: object
+          properties:
+            recipe:
+              $ref: '#/definitions/Recipe'
+            food:
+              type: array
+              items:
+                $ref: '#/definitions/Food'
+      404:
+        $ref: '#/recipes/RecipeDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+  put:
+    tags:
+      - Recipes
+    summary: Change the specified recipe
+    parameters:
+      - $ref: '#/recipes/RecipeIDParameter'
+      - name: recipe
+        in: body
+        description: The fields to be updated in the new recipe
+        schema:
+          $ref: '#/definitions/Recipe'
+    responses:
+      204:
+        $ref: '#/recipes/RecipeSuccessfullyUpdatedResponse'
+      400:
+        $ref: '#/recipes/InvalidRecipeStructureResponse'
+      404:
+        $ref: '#/recipes/RecipeDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+  delete:
+    tags:
+      - Recipes
+    summary: Remove the specified recipe
+    parameters:
+      - $ref: '#/recipes/RecipeIDParameter'
+    responses:
+      204:
+        $ref: '#/recipes/RecipeSuccessfullyDeletedResponse'
+      404:
+        $ref: '#/recipes/RecipeDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
+# READ a list of recipes
+RecipesByPage:
+  get:
+    tags:
+      - Recipes
+    summary: Get the set of recipes and required food items at the given page number
+    description: The recipes are sorted by the date they were last modified (newest first).
+      They can be requested in batches of ten, indexed by the page number. The final page has `last_page` set to `true`
+      The food items associated with the returned recipes are also included in the response.
+    parameters:
+      name: page
+      in: path
+      required: true
+      description: The index of the requested page
+      type: number
+    responses:
+      200:
+        description: The complete list of recipes
+        schema:
+          type: object
+          properties:
+            recipes:
+              type: array
+              items:
+                $ref: '#/definitions/Recipe'
+            food:
+              type: array
+              items:
+                $ref: '#/definitions/Food'
+            last_page:
+              type: boolean
+      404:
+        $ref: '#/recipes/RecipePageDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
+RecipeIDParameter:
+  name: id
+  in: path
+  required: true
+  description: The ID of the recipe
+  type: string
+
+InvalidRecipeStructureResponse:
+  description: The recipe structure is invalid
+  schema:
+    $ref: '#/errors/Error'
+
+RecipeDoesNotExistResponse:
+  description: The specified recipe does not exist
+  schema:
+    $ref: '#/errors/Error'
+
+RecipeSuccessfullyUpdatedResponse:
+  description: The recipe was successfully updated
+
+RecipeSuccessfullyDeletedResponse:
+  description: The recipe was successfully deleted
+
+RecipePageDoesNotExistResponse:
+  description: The specified recipe page does not exist
+  schema:
+    $ref: '#/errors/Error'

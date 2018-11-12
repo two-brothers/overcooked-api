@@ -1,0 +1,98 @@
+# CREATE a food record
+FoodPath:
+  post:
+    tags:
+      - Food
+    summary: Create a food record
+    parameters:
+      - name: food
+        in: body
+        required: true
+        description: The new food record
+        schema:
+          $ref: '#/definitions/Food'
+    responses:
+      200:
+        description: The newly created food record
+        schema:
+          $ref: '#/definitions/Food'
+      400:
+        $ref: '#/food/InvalidFoodStructureResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
+# READ, UPDATE or DELETE a food record
+FoodRecordByIdPath:
+  get:
+    tags:
+      - Food
+    summary: Get the specified Food record
+    parameters:
+      - $ref: '#/food/FoodIDParameter'
+    responses:
+      200:
+        description: The food record
+        schema:
+          $ref: '#/definitions/Food'
+      404:
+        $ref: '#/food/FoodRecordDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+  put:
+    tags:
+      - Food
+    summary: Change the specified Food record
+    parameters:
+      - $ref: '#/food/FoodIDParameter'
+      - name: food
+        in: body
+        description: The fields to be updated in the new Food record
+        schem:
+          $ref: '#/definitions/Food'
+    responses:
+      204:
+        $ref: '#/food/FoodSuccessfullyUpdatedResponse'
+      400:
+        $ref: '#/food/InvalidFoodStructureResponse'
+      404:
+        $ref: '#/food/FoodRecordDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
+  delete:
+    tags:
+      - Food
+    summary: Remove the specified Food record
+    parameters:
+      - $ref: '#/food/FoodIDParameter'
+    responses:
+      204:
+        $ref: '#/food/FoodRecordSuccessfullyDeletedResponse'
+      404:
+        $ref: '#/food/FoodRecordDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
+FoodIDParameter:
+  name: id
+  in: path
+  required: true
+  description: The ID of the food record
+  type: string
+
+InvalidFoodStructureResponse:
+  description: The food record structure is invalid
+  schema:
+    $ref: '#/errors/Error'
+
+FoodRecordDoesNotExistResponse:
+  description: The specified food record does not exist
+  schema:
+    $ref: '#/errors/Error'
+
+FoodSuccessfullyUpdatedResponse:
+  description: The food record was successfully updated
+
+FoodRecordSuccessfullyDeletedResponse:
+  description: The food record was successfully deleted
+

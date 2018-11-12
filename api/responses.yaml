@@ -1,7 +1,0 @@
-UnexpectedServerErrorResponse:
-  description: An unexpected server error occured
-  schema:
-    $ref: '#/definitions/Error'
-
-IngredientDoesNotExistResponse:
-  description: The specified ingredient does not exist

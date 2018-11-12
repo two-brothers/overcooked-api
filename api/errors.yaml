@@ -1,0 +1,11 @@
+Error:
+  properties:
+    code:
+      type: number
+    message:
+      type: string
+
+UnexpectedServerErrorResponse:
+  description: An unexpected server error occurred
+  schema:
+    $ref: '#/errors/Error'
