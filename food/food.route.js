@@ -44,4 +44,18 @@ router.post('/', (req, res, next) => {
         .catch(err => next({status: 500, message: 'Server Error: Unable to create the food record'}));
 });
 
+/*** URI: /food/:id ***/
+
+/**
+ * Return the specified food record
+ */
+router.get('/:id', (req, res, next) => {
+    Food.findOne({_id: req.params.id})
+        .then(record => record ?
+            res.wrap(record.exportable) :
+            next() // the the 404 handler catch it
+        )
+        .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the specified Food record'}));
+});
+
 module.exports = router;
