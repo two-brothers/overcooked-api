@@ -236,4 +236,15 @@ router.put('/:id', (req, res, next) => {
         .catch(err => next({status: 500, message: 'Server Error: Unable to update the specified Recipe'}))
 });
 
+/**
+ * Delete the specified recipe
+ */
+router.delete('/:id', (req, res, next) => {
+    Recipe.findOne({_id: req.params.id})
+        .catch(() => next()) // let the 404 handler catch it
+        .then(record => record.remove())
+        .then(() => res.status(204).send())
+        .catch(err => next({status: 500, message: 'Server Error: Unable to delete the specified recipe'}));
+});
+
 module.exports = router;
