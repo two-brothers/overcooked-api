@@ -29,8 +29,8 @@ router.post('/', (req, res, next) => {
         return next({status: 400, message: 'Food name.plural must be a string'});
     if (!req.body.conversions)
         return next({status: 400, message: 'Array of "conversions" must be specified'});
-    if (!Array.isArray(req.body.conversions))
-        return next({status: 400, message: '"Conversions" must be an array'});
+    if (!Array.isArray(req.body.conversions) || req.body.conversions.length === 0)
+        return next({status: 400, message: '"Conversions" must be an array with at least one element'});
     req.body.conversions.forEach(c => {
         if (c.unit_id === null || typeof c.unit_id !== 'number' || !Number.isInteger(c.unit_id)
             || c.unit_id < 0 || c.unit_id > 12)
@@ -99,6 +99,27 @@ router.delete('/:id', (req, res, next) => {
         .then(record => record.remove())
         .then(() => res.status(204).send())
         .catch(err => next({status: 500, message: 'Server Error: Unable to delete the specified Food record'}));
+});
+
+
+/*** URI: /food/at/:page ***/
+router.get('/at/:page', (req, res, next) => {
+    const ITEMS_PER_PAGE = 3;
+
+    const page = Number(req.params.page);
+    if (Number.isNaN(page) || !Number.isInteger(page) || page < 0)
+        return next({status: 400, message: 'The page parameter must be a non-negative integer'});
+
+    Food.find()
+        .limit(ITEMS_PER_PAGE + 1) // get an extra record to see if there is at least another page,
+        .skip(page * ITEMS_PER_PAGE)
+        .then(records => records.length === 0 ? next() : records) // let the 404 handler catch it
+        .then(records => records.map(record => record.exportable))
+        .then(records => res.wrap({
+            food: records.slice(0, ITEMS_PER_PAGE),
+            last_page: records.length <= ITEMS_PER_PAGE
+        }))
+        .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the Food records'}));
 });
 
 module.exports = router;
