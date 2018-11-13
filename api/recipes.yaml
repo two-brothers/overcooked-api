@@ -84,7 +84,7 @@ RecipesByPage:
   get:
     tags:
       - Recipes
-    summary: Get the set of recipes and required food items at the given page number
+    summary: Get the set of recipes and required food records at the given page number
     description: The recipes are sorted by the date they were last modified (newest first).
       They can be requested in batches of ten, indexed by the page number. The final page has `last_page` set to `true`
       The food items associated with the returned recipes are also included in the response.
@@ -96,7 +96,7 @@ RecipesByPage:
       type: number
     responses:
       200:
-        description: The complete list of recipes
+        description: The list of recipes
         schema:
           type: object
           properties:

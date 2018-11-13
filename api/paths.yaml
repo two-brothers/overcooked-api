@@ -17,3 +17,7 @@
 # READ, UPDATE or DELETE a food record
 /food/{:id}:
   $ref: '#/food/FoodRecordByIdPath'
+
+# READ a list of food items
+/food/at/{:page}:
+  $ref: '#/food/FoodRecordsByPage'

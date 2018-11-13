@@ -73,6 +73,36 @@ FoodRecordByIdPath:
       500:
         $ref: '#/errors/UnexpectedServerErrorResponse'
 
+FoodRecordsByPage:
+  get:
+    tags:
+      - Food
+    summary: Get the set of food records at the given page number
+    description: The food records are not sorted in any particular order.
+      They can be requested in batches of twenty, indexed by the page number. The final page has `last_page` set to `true`
+    parameters:
+      - name: page
+        in: path
+        required: true
+        description: The index of the requested page
+        type: number
+    responses:
+      200:
+        description: The list of food records
+        schema:
+          type: object
+          properties:
+            food:
+              type: array
+              items:
+                $ref: '#/definitions/Food'
+            last_page:
+              type: boolean
+      404:
+        $ref: '#/food/FoodPageDoesNotExistResponse'
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
 FoodIDParameter:
   name: id
   in: path
@@ -95,4 +125,10 @@ FoodSuccessfullyUpdatedResponse:
 
 FoodRecordSuccessfullyDeletedResponse:
   description: The food record was successfully deleted
+
+FoodPageDoesNotExistResponse:
+  description: The specified food page does not exist
+  schema:
+    $ref: '#/errors/Error'
+
 
