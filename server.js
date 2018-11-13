@@ -12,7 +12,7 @@ const swaggerUI = require('swagger-ui-express');
 const mongoose = require('mongoose');
 const MongoStore = require('connect-mongo')(session);
 
-const ingredients = require('./ingredients/module');
+const food = require('./food/module');
 const api = require('./api/module');
 const DBNAME = require('./db.name.js');
 
@@ -61,7 +61,7 @@ app.use(morgan('combined', {stream: accessLogStream}));
 app.get('/', (req, res, next) => {
     res.redirect('/api');
 });
-app.use('/ingredients', ingredients.route);
+app.use('/food', food.route);
 app.use(express.static(path.join(__dirname, 'static')));
 
 /*** API Documentation ***/
