@@ -25,12 +25,14 @@ const Recipe = new mongoose.Schema({
     },
     ingredient_sections: {
         type: [{
+            _id: false,
             heading: {
                 type: String,
                 required: false
             },
             ingredients: {
                 type: [{
+                    _id: false,
                     amount: {
                         type: Number,
                         required: true
@@ -94,5 +96,6 @@ Recipe.virtual('exportable')
         }
         return exp;
     });
+
 
 module.exports = mongoose.model('IRecipe', Recipe);

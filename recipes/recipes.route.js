@@ -96,4 +96,33 @@ router.post('/', (req, res, next) => {
         .catch(err => next({status: 500, message: 'Server Error: Unable to create the Recipe'}));
 });
 
+/*** URI /recipes/:id ***/
+
+/**
+ * Return the specified recipe and the required food items
+ */
+router.get('/:id', (req, res, next) => {
+    Recipe.findOne({_id: req.params.id})
+        .catch(() => next()) // let the 404 handler catch it
+        .then(recipe => recipe.exportable)
+        .then(recipe => {
+            const food_ids =
+                recipe.ingredient_sections
+                    .map(section => section.ingredients)
+                    .reduce((a, b) => a.concat(b))
+                    .map(ingredient => ingredient.food_id)
+                    .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
+
+
+            Promise.all(food_ids.map(id => Food.findOne({_id: id})
+                .then(food => food.exportable)
+            ))
+                .then(foods => res.wrap({
+                    recipe: recipe,
+                    food: foods
+                }))
+        })
+        .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the Recipe'}));
+});
+
 module.exports = router;
