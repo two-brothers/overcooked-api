@@ -32,11 +32,11 @@ router.post('/', (req, res, next) => {
     if (!Array.isArray(req.body.conversions) || req.body.conversions.length === 0)
         return next({status: 400, message: '"Conversions" must be an array with at least one element'});
     req.body.conversions.forEach(c => {
-        if (c.unit_id === null || typeof c.unit_id !== 'number' || !Number.isInteger(c.unit_id)
+        if (c.unit_id === undefined || typeof c.unit_id !== 'number' || !Number.isInteger(c.unit_id)
             || c.unit_id < 0 || c.unit_id > 12)
             return next({status: 400, message: 'Each conversion.unit_id must be an integer between 0 and 12'});
-        if (c.ratio === null | typeof c.ratio !== 'number')
-            return next({status: 400, message: 'Each conversion.ration must be a number'});
+        if (c.ratio === undefined || typeof c.ratio !== 'number')
+            return next({status: 400, message: 'Each conversion.ratio must be a number'});
     });
 
     Food.create(req.body)
@@ -73,10 +73,10 @@ router.put('/:id', (req, res, next) => {
         if (!Array.isArray(req.body.conversions))
             return next({status: 400, message: 'If conversions is updated, it must be an array'});
         req.body.conversions.forEach(c => {
-            if (c.unit_id === null || typeof c.unit_id !== 'number' || !Number.isInteger(c.unit_id)
+            if (c.unit_id === undefined || typeof c.unit_id !== 'number' || !Number.isInteger(c.unit_id)
                 || c.unit_id < 0 || c.unit_id > 12)
                 return next({status: 400, message: 'Each conversion.unit_id must be an integer between 0 and 12'});
-            if (c.ratio === null | typeof c.ratio !== 'number')
+            if (c.ratio === undefined | typeof c.ratio !== 'number')
                 return next({status: 400, message: 'Each conversion.ration must be a number'});
         });
         update.conversions = req.body.conversions;

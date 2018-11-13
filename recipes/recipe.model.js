@@ -25,32 +25,41 @@ const Recipe = new mongoose.Schema({
     },
     ingredient_sections: {
         type: [{
-            amount: {
-                type: Number,
-                required: true
+            heading: {
+                type: String,
+                required: false
             },
-            unit_id: {
-                type: Number,
-                required: true,
-                min: 0,
-                max: 12,
-                validate: {
-                    validator: Number.isInteger,
-                    message: 'Unit ID must be an integer'
-                }
-            },
-            alternative_unit_id: {
-                type: Number,
-                required: true,
-                min: 0,
-                max: 12,
-                validate: {
-                    validator: Number.isInteger,
-                    message: 'Unit ID must be an integer'
-                }
-            },
-            food_id: {
-                type: mongoose.Schema.ObjectId,
+            ingredients: {
+                type: [{
+                    amount: {
+                        type: Number,
+                        required: true
+                    },
+                    unit_id: {
+                        type: Number,
+                        required: true,
+                        min: 0,
+                        max: 12,
+                        validate: {
+                            validator: Number.isInteger,
+                            message: 'Unit ID must be an integer'
+                        }
+                    },
+                    alternative_unit_id: {
+                        type: Number,
+                        required: false,
+                        min: 0,
+                        max: 12,
+                        validate: {
+                            validator: Number.isInteger,
+                            message: 'Unit ID must be an integer'
+                        }
+                    },
+                    food_id: {
+                        type: mongoose.Schema.ObjectId,
+                        required: true
+                    }
+                }],
                 required: true
             }
         }],
@@ -64,6 +73,26 @@ const Recipe = new mongoose.Schema({
         type: String,
         required: true
     }
-}, {timestamps});
+}, {timestamps: true});
+
+Recipe.virtual('exportable')
+    .get(function () {
+        const exp = {
+            'id': this._id,
+            'title': this.title,
+            'prep_time': this.prep_time,
+            'cook_time': this.cook_time,
+            'ingredient_sections': this.ingredient_sections,
+            'method': this.method,
+            'reference_url': this.reference_url,
+            'last_updated': this.updatedAt.getTime()
+        };
+        if (this.serves === undefined) {
+            exp.makes = this.makes
+        } else {
+            exp.serves = this.serves
+        }
+        return exp;
+    });
 
 module.exports = mongoose.model('IRecipe', Recipe);
