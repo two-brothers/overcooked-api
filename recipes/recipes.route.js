@@ -247,4 +247,41 @@ router.delete('/:id', (req, res, next) => {
         .catch(err => next({status: 500, message: 'Server Error: Unable to delete the specified recipe'}));
 });
 
+/*** URI: /recipes/at/:page ***/
+
+router.get('/at/:page', (req, res, next) => {
+    const ITEMS_PER_PAGE = 10;
+
+    const page = Number(req.params.page);
+    if (Number.isNaN(page) || !Number.isInteger(page) || page < 0)
+        return next({status: 400, message: 'The page parameter must be a non-negative integer'});
+
+    Recipe.find()
+        .sort({updatedAt: -1})
+        .limit(ITEMS_PER_PAGE + 1) // get an extra record to see if there is at least another page
+        .skip(page * ITEMS_PER_PAGE)
+        .then(recipes => recipes.length === 0 ? next() : recipes) // let the 404 handler catch it
+        .then(recipes => recipes.map(recipe => recipe.exportable))
+        .then(recipes => {
+            const food_ids =
+                recipes.map(recipe =>
+                    recipe.ingredient_sections
+                        .map(section => section.ingredients)
+                        .reduce((a, b) => a.concat(b))
+                )
+                    .reduce((a, b) => a.concat(b))
+                    .map(ingredient => ingredient.food_id)
+                    .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
+
+            Promise.all(food_ids.map(id => Food.findOne({_id: id})
+                .then(food => food.exportable)
+            ))
+                .then(foods => res.wrap({
+                    recipes: recipes,
+                    food: foods
+                }))
+        })
+        .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the recipes'}));
+});
+
 module.exports = router;
