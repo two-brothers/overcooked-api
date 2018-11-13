@@ -49,6 +49,8 @@ RecipesByIdPath:
     tags:
       - Recipes
     summary: Change the specified recipe
+    description: In this version of the API, you must replace entire top level objects.
+      eg. to update a particular ingredient, you need to update the entire ingredients_section object.
     parameters:
       - $ref: '#/recipes/RecipeIDParameter'
       - name: recipe

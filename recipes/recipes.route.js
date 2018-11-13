@@ -65,7 +65,7 @@ router.post('/', (req, res, next) => {
         });
     });
     if (!req.body.method || !Array.isArray(req.body.method))
-        return next({Status: 400, message: 'Recipe method must be an array'});
+        return next({status: 400, message: 'Recipe method must be an array'});
     req.body.method.forEach(step => {
         if (typeof step !== 'string')
             return next({status: 400, message: 'Each step in the method must be a string'});
@@ -87,9 +87,9 @@ router.post('/', (req, res, next) => {
     Promise.all(food_id_promises)
         .then(invalid_ids => invalid_ids.filter(v => v))
         .then(invalid_ids => {
-            if (invalid_ids.length > 0) {
-                return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`})
-            }
+            if (invalid_ids.length > 0)
+                return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
+
             return Recipe.create(req.body)
                 .then(record => res.wrap(record.exportable))
         })
@@ -123,6 +123,117 @@ router.get('/:id', (req, res, next) => {
                 }))
         })
         .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the Recipe'}));
+});
+
+/**
+ * Update the specified recipe
+ */
+router.put('/:id', (req, res, next) => {
+    const update = {};
+    if (req.body.title) {
+        if (typeof req.body.title !== 'string')
+            return next({status: 400, message: 'Recipe title must be a string'});
+        update.title = req.body.title;
+    }
+    if (req.body.serves !== undefined && req.body.makes !== undefined) {
+        return next({status: 400, message: 'Both serves and makes cannot be defined'});
+    }
+    if (req.body.serves !== undefined) {
+        if (typeof req.body.serves !== 'number')
+            return next({status: 400, message: 'Recipe serves must be a number'});
+        update.serves = req.body.serves;
+    }
+    if (req.body.makes !== undefined) {
+        if (typeof req.body.makes !== 'number')
+            return next({status: 400, message: 'Recipe makes must be a number'});
+        update.makes = req.body.makes
+    }
+    if (req.body.prep_time !== undefined) {
+        if (typeof req.body.prep_time !== 'number')
+            return next({status: 400, message: 'Recipe prep_time must be a number'});
+        update.prep_time = req.body.prep_time
+    }
+    if (req.body.cook_time !== undefined) {
+        if (typeof req.body.cook_time !== 'number')
+            return next({status: 400, message: 'Recipe cook_time must be a number'});
+        update.cook_time = req.body.cook_time
+    }
+    if (req.body.ingredient_sections) {
+        if (!Array.isArray(req.body.ingredient_sections))
+            return next({status: 400, message: 'Recipe ingredient_sections must be an array'});
+        req.body.ingredient_sections.forEach(section => {
+            if (section.heading && typeof section.heading !== 'string')
+                return next({status: 400, message: 'Each (optional) section heading (if it exists) must be a string'});
+            if (!section.ingredients || !Array.isArray(section.ingredients))
+                return next({status: 400, message: 'Each section.ingredients must be an array'});
+            section.ingredients.forEach(ingredient => {
+                if (ingredient.amount === undefined || typeof ingredient.amount !== 'number')
+                    return next({status: 400, message: 'Each ingredient.amount must be a number'});
+                if (ingredient.unit_id === undefined || typeof ingredient.unit_id !== 'number' ||
+                    !Number.isInteger(ingredient.unit_id) || ingredient.unit_id < 0 || ingredient.unit_id > 12)
+                    return next({status: 400, message: 'Each ingredient.unit_id must be an integer between 0 and 12'});
+                if (ingredient.alternative_unit_id !== undefined) {
+                    if (typeof ingredient.alternative_unit_id !== 'number' || !Number.isInteger(ingredient.alternative_unit_id)
+                        || ingredient.alternative_unit_id < 0 || ingredient.alternative_unit_id > 12)
+                        return next({
+                            status: 400,
+                            message: 'Each ingredient.alternative_unit_id (if it exists) must be an integer between 0 and 12'
+                        });
+                }
+                if (ingredient.food_id === undefined || typeof ingredient.food_id !== 'string')
+                    return next({status: 400, message: 'Each ingredient.food_id must be a string'});
+            });
+        });
+        update.ingredient_sections = req.body.ingredient_sections;
+    }
+    if (req.body.method) {
+        if (!Array.isArray(req.body.method))
+            return next({status: 400, message: 'Recipe method must be an array'});
+        req.body.method.forEach(step => {
+            if (typeof step !== 'string')
+                return next({status: 400, message: 'Each step in the method must be a string'});
+        });
+        update.method = req.body.method;
+    }
+    if (req.body.reference_url) {
+        if (typeof req.body.reference_url !== 'string')
+            return next({status: 400, message: 'The recipe reference_url must be a string'});
+        update.reference_url = req.body.reference_url;
+    }
+
+    // confirm that all the food_id values exist in the database
+    const invalid_ids = update.ingredient_sections ?
+        Promise.all(
+            update.ingredient_sections.map(section => section.ingredients)
+                .reduce((a, b) => a.concat(b))
+                .map(ingredient => ingredient.food_id)
+                .filter((food, idx, arr) => arr.indexOf(food) === idx)
+                .map(id => // save the invalid ids
+                    Food.find({_id: id})
+                        .then(() => null)
+                        .catch(() => id)
+                )
+        ).then(invalid_ids => invalid_ids.filter(v => v)) :
+        Promise.resolve([]);
+
+    invalid_ids
+        .then(invalid_ids => {
+            if (invalid_ids.length > 0)
+                return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
+
+            return Recipe.findOne({_id: req.params.id})
+                .catch(() => next()) // let the 404 handler catch it
+                .then(recipe => Object.assign(recipe, update))
+                .then(recipe => {
+                    if (recipe.serves !== undefined && recipe.makes !== undefined)
+                        delete (update.serves !== undefined ? recipe.makes : recipe.serves);
+
+                    return recipe;
+                })
+                .then(recipe => record.save())
+                .then(() => res.status(204).send())
+        })
+        .catch(err => next({status: 500, message: 'Server Error: Unable to update the specified Recipe'}))
 });
 
 module.exports = router;
