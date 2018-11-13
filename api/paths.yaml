@@ -3,11 +3,11 @@
   $ref: '#/recipes/RecipesPath'
 
 # READ, UPDATE or DELETE a recipe
-/recipes/{:id}:
+/recipes/{id}:
   $ref: '#/recipes/RecipesByIdPath'
 
 # READ a list of recipes
-/recipes/at/{:page}:
+/recipes/at/{page}:
   $ref: '#/recipes/RecipesByPage'
 
 # CREATE a food record
@@ -15,9 +15,9 @@
   $ref: '#/food/FoodPath'
 
 # READ, UPDATE or DELETE a food record
-/food/{:id}:
+/food/{id}:
   $ref: '#/food/FoodRecordByIdPath'
 
 # READ a list of food items
-/food/at/{:page}:
+/food/at/{page}:
   $ref: '#/food/FoodRecordsByPage'
