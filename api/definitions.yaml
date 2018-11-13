@@ -13,9 +13,9 @@ Recipe:
       $ref: '#/definitions/Quantity'
     makes:
       $ref: '#/definitions/Quantity'
-    prepTime:
+    prep_time:
       $ref: '#/definitions/Duration'
-    cookTime:
+    cook_time:
       $ref: '#/definitions/Duration'
     ingredient_sections:
       type: array
@@ -53,7 +53,7 @@ Ingredient:
       $ref: '#/definitions/UnitID'
     alternative_unit_id:
       $ref: '#/definitions/UnitID'
-    foodID:
+    food_id:
       $ref: '#/definitions/ID'
 
 Food:

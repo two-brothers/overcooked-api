@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const MongoStore = require('connect-mongo')(session);
 
 const food = require('./food/module');
+const recipes = require('./recipes/module');
 const api = require('./api/module');
 const DBNAME = require('./db.name.js');
 
@@ -62,6 +63,7 @@ app.get('/', (req, res, next) => {
     res.redirect('/api');
 });
 app.use('/food', food.route);
+app.use('/recipes', recipes.route);
 app.use(express.static(path.join(__dirname, 'static')));
 
 /*** API Documentation ***/
