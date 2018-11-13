@@ -90,4 +90,15 @@ router.put('/:id', (req, res, next) => {
         .catch(err => next({status: 500, message: 'Server Error: Unable to update the specified Food record'}));
 });
 
+/**
+ * Delete the specified food record
+ */
+router.delete('/:id', (req, res, next) => {
+    Food.findOne({_id: req.params.id})
+        .catch(() => next()) // let the 404 handler catch it
+        .then(record => record.remove())
+        .then(() => res.status(204).send())
+        .catch(err => next({status: 500, message: 'Server Error: Unable to delete the specified Food record'}));
+});
+
 module.exports = router;
