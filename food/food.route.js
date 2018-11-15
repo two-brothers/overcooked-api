@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Food = require('./food.model');
 const wrapper = require('../response-wrapper');
+const VLD = require('../request-validator');
 
 /**
  * Create a 'wrap' function that wraps the response
@@ -21,23 +22,20 @@ router.use((req, res, next) => {
  * Create a new food record
  */
 router.post('/', (req, res, next) => {
-    if (!req.body.name)
-        return next({status: 400, message: 'Food name must be specified'});
-    if (!req.body.name.singular || typeof req.body.name.singular !== 'string')
-        return next({status: 400, message: 'Food name.singular must be a string'});
-    if (!req.body.name.plural || typeof req.body.name.plural !== 'string')
-        return next({status: 400, message: 'Food name.plural must be a string'});
-    if (!req.body.conversions)
-        return next({status: 400, message: 'Array of "conversions" must be specified'});
-    if (!Array.isArray(req.body.conversions) || req.body.conversions.length === 0)
-        return next({status: 400, message: '"Conversions" must be an array with at least one element'});
-    req.body.conversions.forEach(c => {
-        if (c.unit_id === undefined || typeof c.unit_id !== 'number' || !Number.isInteger(c.unit_id)
-            || c.unit_id < 0 || c.unit_id > 12)
-            return next({status: 400, message: 'Each conversion.unit_id must be an integer between 0 and 12'});
-        if (c.ratio === undefined || typeof c.ratio !== 'number')
-            return next({status: 400, message: 'Each conversion.ratio must be a number'});
-    });
+    const error = VLD.required(req.body.name, () => true, 'Food name must be defined') ||
+        VLD.required(req.body.name.singular, VLD.isString, 'Food name.singular must be a string') ||
+        VLD.required(req.body.name.plural, VLD.isString, 'Food name.plural must be a string') ||
+        VLD.required(req.body.conversions, Array.isArray, 'Food conversions must be an array') ||
+        VLD.required(req.body.conversions, (arr) => arr.length > 0, 'Food conversions cannot be empty') ||
+        req.body.conversions.reduce((error, conversion, convIdx) => error || (
+            VLD.required(conversion.unit_id, VLD.isBoundedInt(0, 12),
+                `Food conversions[${convIdx}].unit_id must be an integer between 0 and 12`) ||
+            VLD.required(conversion.ratio, VLD.isNumber,
+                `Food conversions[${convIdx}].ratio must be a number`)
+        ), null);
+
+    if (error)
+        return next({status: 400, message: error});
 
     Food.create(req.body)
         .then(record => res.wrap(record.exportable))
@@ -60,27 +58,25 @@ router.get('/:id', (req, res, next) => {
  * Update the specified food record
  */
 router.put('/:id', (req, res, next) => {
-    const update = {};
+    const error = ( req.body.name !== undefined ?
+            VLD.required(req.body.name.singular, VLD.isString, 'Food name.singular must be a string') ||
+            VLD.required(req.body.name.plural, VLD.isString, 'Food name.plural must be a string') :
+            null
+        ) ||
+        VLD.optional(req.body.conversions, Array.isArray, 'Food conversions (if defined) must be an array') ||
+        VLD.optional(req.body.conversions, (arr) => arr.length > 0, 'Food conversions (if defined) cannot be empty') ||
+        ( req.body.conversions ?
+                req.body.conversions.reduce((error, conversion, convIdx) => error || (
+                    VLD.required(conversion.unit_id, VLD.isBoundedInt(0, 12),
+                        `Food conversions[${convIdx}].unit_id must be an integer between 0 and 12`) ||
+                    VLD.required(conversion.ratio, VLD.isNumber,
+                        `Food conversions[${convIdx}].ratio must be a number`)
+                ), null) :
+                null
+        );
 
-    if (req.body.name) {
-        if (!req.body.name.singular || typeof req.body.name.singular !== 'string')
-            return next({status: 400, message: 'If name is updated, name.singular must be a string'});
-        if (!req.body.name.plural || typeof req.body.name.plural !== 'string')
-            return next({status: 400, message: 'If name is updated, name.plural must be a string'});
-        update.name = req.body.name;
-    }
-    if (req.body.conversions) {
-        if (!Array.isArray(req.body.conversions))
-            return next({status: 400, message: 'If conversions is updated, it must be an array'});
-        req.body.conversions.forEach(c => {
-            if (c.unit_id === undefined || typeof c.unit_id !== 'number' || !Number.isInteger(c.unit_id)
-                || c.unit_id < 0 || c.unit_id > 12)
-                return next({status: 400, message: 'Each conversion.unit_id must be an integer between 0 and 12'});
-            if (c.ratio === undefined | typeof c.ratio !== 'number')
-                return next({status: 400, message: 'Each conversion.ration must be a number'});
-        });
-        update.conversions = req.body.conversions;
-    }
+    if (error)
+        return next({status: 400, message: error});
 
     Food.findOne({_id: req.params.id})
         .catch(() => next()) // let the 404 handler catch it
@@ -107,8 +103,9 @@ router.get('/at/:page', (req, res, next) => {
     const ITEMS_PER_PAGE = 3;
 
     const page = Number(req.params.page);
-    if (Number.isNaN(page) || !Number.isInteger(page) || page < 0)
-        return next({status: 400, message: 'The page parameter must be a non-negative integer'});
+    const error = VLD.required(page, VLD.isBoundedInt(0, Infinity), 'The page parameter must be a non-negative integer');
+    if (error)
+        next({status: 400, message: error});
 
     Food.find()
         .limit(ITEMS_PER_PAGE + 1) // get an extra record to see if there is at least another page,
