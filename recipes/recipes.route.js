@@ -40,8 +40,6 @@ router.post('/', (req, res, next) => {
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a number`) ||
                 VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, 12),
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and 12`) ||
-                VLD.optional(ingredient.alternative_unit_id, VLD.isBoundedInt(0, 12),
-                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].alternative_unit_id must be an integer between 0 and 12`) ||
                 VLD.required(ingredient.food_id, VLD.isString,
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a string`)
             ), null)
@@ -129,8 +127,6 @@ router.put('/:id', (req, res, next) => {
                             `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a number`) ||
                         VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, 12),
                             `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and 12`) ||
-                        VLD.optional(ingredient.alternative_unit_id, VLD.isBoundedInt(0, 12),
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].alternative_unit_id must be an integer between 0 and 12`) ||
                         VLD.required(ingredient.food_id, VLD.isString,
                             `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a string`)
                     ), null)

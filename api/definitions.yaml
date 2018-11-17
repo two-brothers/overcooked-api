@@ -51,8 +51,6 @@ Ingredient:
       $ref: '#/definitions/Quantity'
     unit_id:
       $ref: '#/definitions/UnitID'
-    alternative_unit_id:
-      $ref: '#/definitions/UnitID'
     food_id:
       $ref: '#/definitions/ID'
 
