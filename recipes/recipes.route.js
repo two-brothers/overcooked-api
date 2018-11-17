@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Recipe = require('./recipe.model');
 const Food = require('../food/module').model;
+const UnitTypes = require('../food/module').unit_types;
 const wrapper = require('../response-wrapper');
 const VLD = require('../request-validator');
 
@@ -23,6 +24,8 @@ router.use((req, res, next) => {
  * Create a new recipe
  */
 router.post('/', (req, res, next) => {
+    const maxUnitType = UnitTypes.length - 1;
+
     const error = VLD.required(req.body.title, VLD.isString, 'Recipe title must be a string') ||
         VLD.optional(req.body.serves, VLD.isNumber, 'Recipe serves (if defined) must be number') ||
         VLD.optional(req.body.makes, VLD.isNumber, 'Recipe makes (if defined) must be a number') ||
@@ -38,8 +41,8 @@ router.post('/', (req, res, next) => {
             section.ingredients.reduce((error, ingredient, ingIdx) => error || (
                 VLD.required(ingredient.amount, VLD.isNumber,
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a number`) ||
-                VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, 12),
-                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and 12`) ||
+                VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, maxUnitType),
+                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
                 VLD.required(ingredient.food_id, VLD.isString,
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a string`)
             ), null)
@@ -109,6 +112,8 @@ router.get('/:id', (req, res, next) => {
  * Update the specified recipe
  */
 router.put('/:id', (req, res, next) => {
+    const maxUnitType = UnitTypes.length - 1;
+
     const error = VLD.optional(req.body.title, VLD.isString, 'Recipe title (if defined) must be a string') ||
         VLD.optional(req.body.serves, VLD.isNumber, 'Recipe serves (if defined) must be number') ||
         VLD.optional(req.body.makes, VLD.isNumber, 'Recipe makes (if defined) must be a number') ||
@@ -125,8 +130,8 @@ router.put('/:id', (req, res, next) => {
                     section.ingredients.reduce((error, ingredient, ingIdx) => error || (
                         VLD.required(ingredient.amount, VLD.isNumber,
                             `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a number`) ||
-                        VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, 12),
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and 12`) ||
+                        VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, maxUnitType),
+                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
                         VLD.required(ingredient.food_id, VLD.isString,
                             `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a string`)
                     ), null)

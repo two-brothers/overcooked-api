@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const Food = require('./food.model');
+const UnitTypes = require('./unit_types');
 const wrapper = require('../response-wrapper');
 const VLD = require('../request-validator');
 
@@ -22,14 +23,16 @@ router.use((req, res, next) => {
  * Create a new food record
  */
 router.post('/', (req, res, next) => {
+    const maxUnitType = UnitTypes.length - 1;
+
     const error = VLD.required(req.body.name, () => true, 'Food name must be defined') ||
         VLD.required(req.body.name.singular, VLD.isString, 'Food name.singular must be a string') ||
         VLD.required(req.body.name.plural, VLD.isString, 'Food name.plural must be a string') ||
         VLD.required(req.body.conversions, Array.isArray, 'Food conversions must be an array') ||
         VLD.required(req.body.conversions, (arr) => arr.length > 0, 'Food conversions cannot be empty') ||
         req.body.conversions.reduce((error, conversion, convIdx) => error || (
-            VLD.required(conversion.unit_id, VLD.isBoundedInt(0, 12),
-                `Food conversions[${convIdx}].unit_id must be an integer between 0 and 12`) ||
+            VLD.required(conversion.unit_id, VLD.isBoundedInt(0, maxUnitType),
+                `Food conversions[${convIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
             VLD.required(conversion.ratio, VLD.isNumber,
                 `Food conversions[${convIdx}].ratio must be a number`)
         ), null);
@@ -58,6 +61,8 @@ router.get('/:id', (req, res, next) => {
  * Update the specified food record
  */
 router.put('/:id', (req, res, next) => {
+    const maxUnitType = UnitTypes.length - 1;
+
     const error = ( req.body.name !== undefined ?
             VLD.required(req.body.name.singular, VLD.isString, 'Food name.singular must be a string') ||
             VLD.required(req.body.name.plural, VLD.isString, 'Food name.plural must be a string') :
@@ -67,8 +72,8 @@ router.put('/:id', (req, res, next) => {
         VLD.optional(req.body.conversions, (arr) => arr.length > 0, 'Food conversions (if defined) cannot be empty') ||
         ( req.body.conversions ?
                 req.body.conversions.reduce((error, conversion, convIdx) => error || (
-                    VLD.required(conversion.unit_id, VLD.isBoundedInt(0, 12),
-                        `Food conversions[${convIdx}].unit_id must be an integer between 0 and 12`) ||
+                    VLD.required(conversion.unit_id, VLD.isBoundedInt(0, maxUnitType),
+                        `Food conversions[${convIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
                     VLD.required(conversion.ratio, VLD.isNumber,
                         `Food conversions[${convIdx}].ratio must be a number`)
                 ), null) :
