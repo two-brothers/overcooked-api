@@ -26,32 +26,32 @@ router.use((req, res, next) => {
 router.post('/', (req, res, next) => {
     const maxUnitType = UnitTypes.length - 1;
 
-    const error = VLD.required(req.body.title, VLD.isString, 'Recipe title must be a string') ||
-        VLD.optional(req.body.serves, VLD.isNumber, 'Recipe serves (if defined) must be number') ||
-        VLD.optional(req.body.makes, VLD.isNumber, 'Recipe makes (if defined) must be a number') ||
+    const error = VLD.required(req.body.title, VLD.isNonEmptyString, 'Recipe title must be a non-empty string') ||
+        VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number') ||
+        VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number') ||
         VLD.mutuallyExclusive([req.body.makes, req.body.serves], 'Recipe serves xor makes must be defined') ||
-        VLD.required(req.body.prep_time, VLD.Number, 'Recipe prep_time must be a number') ||
-        VLD.required(req.body.cook_time, VLD.Number, 'Recipe cook_time must be a number') ||
+        VLD.required(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time must be a positive number') ||
+        VLD.required(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time must be a positive number') ||
         VLD.required(req.body.ingredient_sections, Array.isArray, 'Recipe ingredient_sections must be an array') ||
         req.body.ingredient_sections.reduce((error, section, secIdx) => error || (
-            VLD.optional(section.heading, VLD.isString,
-                `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a string`) ||
+            VLD.optional(section.heading, VLD.isNonEmptyString,
+                `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
             VLD.required(section.ingredients, Array.isArray,
                 `Recipe ingredient_sections[${secIdx}].ingredients must be an array`) ||
             section.ingredients.reduce((error, ingredient, ingIdx) => error || (
-                VLD.required(ingredient.amount, VLD.isNumber,
-                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a number`) ||
+                VLD.required(ingredient.amount, VLD.isPositiveNumber,
+                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
                 VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, maxUnitType),
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
-                VLD.required(ingredient.food_id, VLD.isString,
-                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a string`)
+                VLD.required(ingredient.food_id, VLD.isNonEmptyString,
+                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`)
             ), null)
         ), null) ||
         VLD.required(req.body.method, Array.isArray, 'Recipe method must be an array') ||
         req.body.method.reduce((error, step, stepIdx) => error ||
-            VLD.required(step, VLD.isString, `Recipe method[${stepIdx}] must be a string`)
+            VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`)
         ) ||
-        VLD.required(req.body.reference_url, VLD.isString, 'Recipe reference_url must be a string');
+        VLD.required(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url must be a non-empty string');
 
     if (error)
         return next({status: 400, message: error});
@@ -114,38 +114,38 @@ router.get('/:id', (req, res, next) => {
 router.put('/:id', (req, res, next) => {
     const maxUnitType = UnitTypes.length - 1;
 
-    const error = VLD.optional(req.body.title, VLD.isString, 'Recipe title (if defined) must be a string') ||
-        VLD.optional(req.body.serves, VLD.isNumber, 'Recipe serves (if defined) must be number') ||
-        VLD.optional(req.body.makes, VLD.isNumber, 'Recipe makes (if defined) must be a number') ||
+    const error = VLD.optional(req.body.title, VLD.isNonEmptyString, 'Recipe title (if defined) must be a non-empty string') ||
+        VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number') ||
+        VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number') ||
         ([req.body.serves, req.body.makes].every(val => val !== undefined) ? null : 'Recipe serves and makes cannot both be defined') ||
-        VLD.optional(req.body.prep_time, VLD.Number, 'Recipe prep_time (if defined) must be a number') ||
-        VLD.optional(req.body.cook_time, VLD.Number, 'Recipe cook_time (if defined) must be a number') ||
+        VLD.optional(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time (if defined) must be a positive number') ||
+        VLD.optional(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time (if defined) must be a positive number') ||
         VLD.optional(req.body.ingredient_sections, Array.isArray, 'Recipe ingredient_sections (if defined) must be an array') ||
         ( req.body.ingredient_sections !== undefined ?
                 req.body.ingredient_sections.reduce((error, section, secIdx) => error || (
-                    VLD.optional(section.heading, VLD.isString,
-                        `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a string`) ||
+                    VLD.optional(section.heading, VLD.isNonEmptyString,
+                        `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
                     VLD.required(section.ingredients, Array.isArray,
                         `Recipe ingredient_sections[${secIdx}].ingredients must be an array`) ||
                     section.ingredients.reduce((error, ingredient, ingIdx) => error || (
-                        VLD.required(ingredient.amount, VLD.isNumber,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a number`) ||
+                        VLD.required(ingredient.amount, VLD.isPositiveNumber,
+                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a a positive number`) ||
                         VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, maxUnitType),
                             `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
-                        VLD.required(ingredient.food_id, VLD.isString,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a string`)
+                        VLD.required(ingredient.food_id, VLD.isNonEmptyString,
+                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`)
                     ), null)
                 ), null) :
                 null
         ) ||
-        VLD.optinoal(req.body.method, Array.isArray, 'Recipe method (if defined) must be an array') ||
+        VLD.optional(req.body.method, Array.isArray, 'Recipe method (if defined) must be an array') ||
         ( req.body.method !== undefined ?
                 req.body.method.reduce((error, step, stepIdx) => error ||
-                    VLD.required(step, VLD.isString, `Recipe method[${stepIdx}] must be a string`)
+                    VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`)
                 ) :
                 null
         ) ||
-        VLD.optional(req.body.reference_url, VLD.isString, 'Recipe reference_url (if defined) must be a string');
+        VLD.optional(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url (if defined) must be a non-empty string');
 
     if (error)
         return next({status: 400, message: error});
