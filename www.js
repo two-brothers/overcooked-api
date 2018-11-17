@@ -14,7 +14,9 @@ server.listen(port);
 /*** HANDLE EVENTS ***/
 
 server.on('listening', () => {
-    console.log(`Listening on port ${server.address().port}`);
+    if (process.env.NODE_ENV !== 'test') {
+        console.log(`Listening on port ${server.address().port}`);
+    }
 });
 
 server.on('error', error => {
