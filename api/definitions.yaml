@@ -8,7 +8,7 @@ Recipe:
     id:
       $ref: '#/definitions/ID'
     title:
-      type: string
+      $ref: '#/definitions/NonEmptyString'
     serves:
       $ref: '#/definitions/Quantity'
     makes:
@@ -24,9 +24,9 @@ Recipe:
     method:
       type: array
       items:
-        type: string
+        $ref: '#/definitions/NonEmptyString'
     reference_url:
-      type: string
+      $ref: '#/definitions/NonEmptyString'
     last_updated:
       $ref: '#/definitions/Timestamp'
 
@@ -35,7 +35,7 @@ IngredientSection:
     - ingredients
   properties:
     heading:
-      type: string
+      $ref: '#/definitions/NonEmptyString'
     ingredients:
       type: array
       items:
@@ -75,29 +75,43 @@ Food:
             $ref: '#/definitions/UnitID'
           ratio:
             type: number
+            minimum: 0
+            exclusiveMinimum: true
 
 ID:
   type: string
   example: '< Set by the server >'
 
+NonEmptyString:
+  type: string
+  minLength: 1
+
 Name:
   properties:
     singular:
       type: string
+      minLength: 1
     plural:
       type: string
+      minLength: 1
 
 Quantity:
   type: number
+  minimum: 0
+  exclusiveMinimum: true
 
 # In mins
 Duration:
   type: number
+  minimum: 0
+  exclusiveMinimum: true
 
 # The app uses a hardcoded enum to describe units
 UnitID:
-  type: number
+  type: integer
+  minimum: 0
+  maximum: 12
 
 Timestamp:
-  type: number
+  type: integer
   example: '< Set by the server >'
