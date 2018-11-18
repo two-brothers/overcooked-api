@@ -80,7 +80,7 @@ const Recipe = new mongoose.Schema({
 Recipe.virtual('exportable')
     .get(function () {
         const exp = {
-            'id': this._id,
+            'id': this._id.toString(),
             'title': this.title,
             'prep_time': this.prep_time,
             'cook_time': this.cook_time,

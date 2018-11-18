@@ -39,7 +39,7 @@ const Food = new mongoose.Schema({
 Food.virtual('exportable')
     .get(function () {
         return {
-            'id': this._id,
+            'id': this._id.toString(),
             'name': this.name,
             'conversions': this.conversions
         }
