@@ -63,9 +63,9 @@ describe('/food', () => {
          * the endpoint responds with a 400 (Bad Request) error
          */
         const expectBadPostRequest = () =>
-            it('should return a Bad Request error', done => {
-                mochaExt.expectErrorResponse(request.post(endpoint), data, 400, done);
-            });
+            it('should return a Bad Request error', () =>
+                mochaExt.expectErrorResponse(request.post(endpoint), data, 400)
+            );
 
 
         /**
@@ -75,7 +75,7 @@ describe('/food', () => {
          *   - the returned record matches the sent 'data' with the addition of an 'id' field
          */
         const expectNewFoodResponse = () =>
-            it('should return a 200 (OK) response with the new record', done => {
+            it('should return a 200 (OK) response with the new record', () =>
                 request.post(endpoint)
                     .send(data)
                     .then(res => {
@@ -87,9 +87,7 @@ describe('/food', () => {
                         delete res.body.data.id;
                         res.body.data.should.deep.equal(data);
                     })
-                    .then(done)
-                    .catch(done);
-            });
+            );
 
         /**
          * Uses the 'setter' function to set the value of a property in 'data' to confirm that:
@@ -366,18 +364,14 @@ describe('/food', () => {
                     endpoint = `${endpoint}/invalid_id`;
                 });
 
-                it('should return a NotFound error', done => {
-                    request.get(endpoint)
-                        .then(res => res.status.should.equal(404))
-                        .then(() => null)
-                        .then(done)
-                        .catch(done);
-                });
+                it('should return a NotFound error', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(404))
+                );
             });
 
             describe('the specified id is valid', () => {
 
-                it('should return the corresponding record', done => {
+                it('should return the corresponding record', () =>
                     Promise.all(foodRecords.map(record =>
                         request.get(`${endpoint}/${record.id}`)
                             .then(res => {
@@ -385,10 +379,7 @@ describe('/food', () => {
                                 res.body.data.should.deep.equal(record);
                             })
                     ))
-                        .then(() => null)
-                        .then(done)
-                        .catch(done);
-                });
+                );
 
             });
         });
