@@ -8,7 +8,6 @@ const mongoose = require('mongoose');
 const mockgoose = require('mockgoose');
 mongoose.Promise = global.Promise;
 
-const mochaExt = require('../mocha.extensions');
 const Food = require('./food.model');
 const UnitTypes = require('./unit_types');
 const FoodSample = require('./food.sample');
@@ -64,7 +63,9 @@ describe('/food', () => {
          */
         const expectBadPostRequest = () =>
             it('should return a Bad Request error', () =>
-                mochaExt.expectErrorResponse(request.post(endpoint), data, 400)
+                request.post(endpoint)
+                    .send(data)
+                    .then(res => res.status.should.equal(400))
             );
 
 
@@ -464,7 +465,9 @@ describe('/food', () => {
                         });
                     } else {
                         it('should return a Bad Request error', () =>
-                            mochaExt.expectErrorResponse(request.put(`${endpoint}/${record.id}`), update, 400)
+                            request.put(`${endpoint}/${record.id}`)
+                                .send(update)
+                                .then(res => res.status.should.equal(400))
                         );
                     }
 
