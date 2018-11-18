@@ -51,16 +51,22 @@ router.post('/', (req, res, next) => {
  * Return the specified food record
  */
 router.get('/:id', (req, res, next) => {
+    const RecordNotFound = new Error('Record Not Found');
+
     Food.findOne({_id: req.params.id})
-        .catch(() => next()) // let the 404 handler catch it
+        .catch(() => Promise.reject(RecordNotFound))
         .then(record => res.wrap(record.exportable))
-        .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the specified Food record'}));
+        .catch(err => err === RecordNotFound ?
+            next() : // let the 404 handler catch it
+            next({status: 500, message: 'Server Error: Unable to retrieve the specified Food record'})
+        );
 });
 
 /**
  * Update the specified food record
  */
 router.put('/:id', (req, res, next) => {
+    const RecordNotFound = new Error('Record Not Found');
     const maxUnitType = UnitTypes.length - 1;
 
     const error = ( req.body.name !== undefined ?
@@ -84,22 +90,30 @@ router.put('/:id', (req, res, next) => {
         return next({status: 400, message: error});
 
     Food.findOne({_id: req.params.id})
-        .catch(() => next()) // let the 404 handler catch it
+        .catch(() => Promise.reject(RecordNotFound))
         .then(record => Object.assign(record, update))
         .then(record => record.save())
         .then(() => res.status(204).send())
-        .catch(err => next({status: 500, message: 'Server Error: Unable to update the specified Food record'}));
+        .catch(err => err === RecordNotFound ?
+            next() : // let the 404 handler catch it
+            next({status: 500, message: 'Server Error: Unable to update the specified Food record'})
+        );
 });
 
 /**
  * Delete the specified food record
  */
 router.delete('/:id', (req, res, next) => {
+    const RecordNotFound = new Error('Record Not Found');
+
     Food.findOne({_id: req.params.id})
-        .catch(() => next()) // let the 404 handler catch it
+        .catch(() => Promise.reject(RecordNotFound))
         .then(record => record.remove())
         .then(() => res.status(204).send())
-        .catch(err => next({status: 500, message: 'Server Error: Unable to delete the specified Food record'}));
+        .catch(err => err === RecordNotFound ?
+            next() : // let the 404 handler catch it
+            next({status: 500, message: 'Server Error: Unable to delete the specified Food record'})
+        );
 });
 
 
