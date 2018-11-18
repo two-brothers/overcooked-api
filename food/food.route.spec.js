@@ -348,7 +348,9 @@ describe('/food', () => {
             Promise.all(
                 FoodSample.map(sample =>
                     Food.create(sample)
-                        .then(record => Object.assign({}, sample, {id: record._id.toString()}))
+                        .then(record => record.exportable)
+                        // remove the Mongoose specific types
+                        .then(record => JSON.parse(JSON.stringify(record)))
                 )
             )
                 .then(records => {
@@ -358,7 +360,7 @@ describe('/food', () => {
 
         afterEach(done => mockgoose.reset(done));
 
-        describe('GET', () => {
+        const unknownRecordTests = () => {
             describe('specified id is invalid', () => {
                 beforeEach(() => {
                     endpoint = `${endpoint}/invalid_id`;
@@ -368,6 +370,10 @@ describe('/food', () => {
                     request.get(endpoint).then(res => res.status.should.equal(404))
                 );
             });
+        };
+
+        describe('GET', () => {
+            unknownRecordTests();
 
             describe('the specified id is valid', () => {
 
@@ -382,6 +388,89 @@ describe('/food', () => {
                 );
 
             });
+        });
+
+        describe('PUT', () => {
+            let record;
+            let update;
+
+            beforeEach(() => {
+                record = foodRecords[0];
+                update = {name: {}};
+            });
+
+            const stringOptions = (propName, propSetter) => [
+                {desc: `${propName} is undefined`, set: () => null, valid: false},
+                {desc: `${propName} is a number`, set: () => propSetter(1), valid: false},
+                {desc: `${propName} is an empty string`, set: () => propSetter(''), valid: false},
+                {desc: `${propName} is a non empty string`, set: () => propSetter('Arbitrary string'), valid: true}
+            ];
+
+            const singularSetter = (val) => {
+                update.name.singular = val;
+            };
+            const pluralSetter = (val) => {
+                update.name.plural = val;
+            };
+
+            // cross product all options for both properties
+            const nameOptions = stringOptions('name.singular', singularSetter).map((singularOption, singularIdx) =>
+                stringOptions('name.plural', pluralSetter).map((pluralOption, pluralIdx) => ({
+                    desc: `${singularOption.desc}; ${pluralOption.desc}`,
+                    set: () => {
+                        singularOption.set();
+                        pluralOption.set();
+                    },
+                    valid: singularOption.valid && pluralOption.valid
+                }))
+            ).reduce((a, b) => a.concat(b));
+            // add the case where name is undefined
+            nameOptions.unshift({
+                desc: `name is undefined`,
+                set: () => {
+                    delete update.name
+                },
+                valid: true
+            });
+
+            nameOptions.map(nameOption => {
+                describe(nameOption.desc, () => {
+                    beforeEach(nameOption.set);
+
+                    if (nameOption.valid) {
+                        unknownRecordTests();
+
+                        describe('the specified id is valid', () => {
+                            let expected;
+                            let send;
+
+                            beforeEach(() => {
+                                endpoint = `${endpoint}/${record.id}`;
+                                expected = Object.assign(record, update);
+                                send = request.put(endpoint).send(update);
+                            });
+
+                            it('should return a NoContent response', () =>
+                                send.then(res => res.status.should.equal(204))
+                            );
+
+                            it('should update the database appropriately', () =>
+                                send.then(() => Food.findOne({_id: record.id}))
+                                    .then(updated => updated.exportable)
+                                    // remove the Mongoose specific types
+                                    .then(updated => JSON.parse(JSON.stringify(updated)))
+                                    .then(updated => updated.should.deep.equal(expected))
+                            );
+                        });
+                    } else {
+                        it('should return a Bad Request error', () =>
+                            mochaExt.expectErrorResponse(request.put(`${endpoint}/${record.id}`), update, 400)
+                        );
+                    }
+
+                })
+            });
+
         });
     });
 });

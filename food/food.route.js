@@ -91,7 +91,7 @@ router.put('/:id', (req, res, next) => {
 
     Food.findOne({_id: req.params.id})
         .catch(() => Promise.reject(RecordNotFound))
-        .then(record => Object.assign(record, update))
+        .then(record => Object.assign(record, req.body))
         .then(record => record.save())
         .then(() => res.status(204).send())
         .catch(err => err === RecordNotFound ?
