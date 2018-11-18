@@ -20,8 +20,8 @@ let server;
 
 const maxUnitType = UnitTypes.length - 1;
 
-describe('/food endpoint', () => {
-    const endpoint = '/food';
+describe('/food', () => {
+    let endpoint;
     let request;
     let sample;
     let data;
@@ -47,6 +47,7 @@ describe('/food endpoint', () => {
     });
 
     beforeEach(() => {
+        endpoint = '/food';
         request = chai.request(server);
         // create a clone of the sample data
         sample = JSON.parse(JSON.stringify(FoodSample));
@@ -338,6 +339,57 @@ describe('/food endpoint', () => {
 
                     conversionTests();
                 });
+            });
+        });
+    });
+
+    describe('/:id', () => {
+        let foodRecords;
+
+        beforeEach(() =>
+            Promise.all(
+                FoodSample.map(sample =>
+                    Food.create(sample)
+                        .then(record => Object.assign({}, sample, {id: record._id.toString()}))
+                )
+            )
+                .then(records => {
+                    foodRecords = records;
+                })
+        );
+
+        afterEach(done => mockgoose.reset(done));
+
+        describe('GET', () => {
+            describe('specified id is invalid', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/invalid_id`;
+                });
+
+                it('should return a NotFound error', done => {
+                    request.get(endpoint)
+                        .then(res => res.status.should.equal(404))
+                        .then(() => null)
+                        .then(done)
+                        .catch(done);
+                });
+            });
+
+            describe('the specified id is valid', () => {
+
+                it('should return the corresponding record', done => {
+                    Promise.all(foodRecords.map(record =>
+                        request.get(`${endpoint}/${record.id}`)
+                            .then(res => {
+                                res.status.should.equal(200);
+                                res.body.data.should.deep.equal(record);
+                            })
+                    ))
+                        .then(() => null)
+                        .then(done)
+                        .catch(done);
+                });
+
             });
         });
     });
