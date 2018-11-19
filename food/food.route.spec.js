@@ -415,8 +415,8 @@ describe('/food', () => {
             };
 
             // cross product all options for both properties
-            const nameOptions = stringOptions('name.singular', singularSetter).map((singularOption, singularIdx) =>
-                stringOptions('name.plural', pluralSetter).map((pluralOption, pluralIdx) => ({
+            const nameOptions = stringOptions('name.singular', singularSetter).map(singularOption =>
+                stringOptions('name.plural', pluralSetter).map(pluralOption => ({
                     desc: `${singularOption.desc}; ${pluralOption.desc}`,
                     set: () => {
                         singularOption.set();
@@ -436,42 +436,126 @@ describe('/food', () => {
 
             nameOptions.map(nameOption => {
                 describe(nameOption.desc, () => {
-                    beforeEach(nameOption.set);
+                    let conversion;
+                    beforeEach(() => {
+                        nameOption.set();
+                        conversion = {};
+                    });
 
-                    if (nameOption.valid) {
-                        unknownRecordTests();
+                    const unitIDSetter = (val) => {
+                        conversion.unit_id = val;
+                    };
+                    const unitIDOptions = () => [
+                        {desc: 'unit_id is undefined', set: () => null, valid: false},
+                        {desc: 'unit_id is negative', set: () => unitIDSetter(-1), valid: false},
+                        {desc: 'unit_id is 0', set: () => unitIDSetter(0), valid: true},
+                        {
+                            desc: 'unit_id is in the middle of the expected range',
+                            set: () => unitIDSetter(Math.floor(maxUnitType / 2)),
+                            valid: true
+                        },
+                        {desc: 'unit_id is the maximum value', set: () => unitIDSetter(maxUnitType), valid: true},
+                        {
+                            desc: 'unit_id exceeds the maximum value',
+                            set: () => unitIDSetter(maxUnitType + 1),
+                            valid: false
+                        }
+                    ];
 
-                        describe('the specified id is valid', () => {
-                            let expected;
-                            let send;
+                    const ratioSetter = (val) => {
+                        conversion.ratio = val;
+                    };
+                    const ratioOptions = () => [
+                        {desc: 'ratio is undefined', set: () => null, valid: false},
+                        {desc: 'ratio is negative', set: () => ratioSetter(-1), valid: false},
+                        {desc: 'ratio is zero', set: () => ratioSetter(0), valid: false},
+                        {desc: 'ratio is 1', set: () => ratioSetter(1), valid: true},
+                        {desc: 'ratio is a positive fraction', set: () => ratioSetter(0.421), valid: true}
+                    ];
 
-                            beforeEach(() => {
-                                endpoint = `${endpoint}/${record.id}`;
-                                expected = Object.assign(record, update);
-                                send = request.put(endpoint).send(update);
-                            });
+                    // cross all possible unit ids with ratios to get the conversion object under test
+                    const singleConversionOptions = () =>
+                        unitIDOptions().map(unitIDOption =>
+                            ratioOptions().map(ratioOption => ({
+                                desc: `${unitIDOption.desc} and ${ratioOption.desc}`,
+                                set: () => {
+                                    unitIDOption.set();
+                                    ratioOption.set();
+                                },
+                                valid: unitIDOption.valid && ratioOption.valid
+                            }))
+                        ).reduce((a, b) => a.concat(b));
 
-                            it('should return a NoContent response', () =>
-                                send.then(res => res.status.should.equal(204))
-                            );
 
-                            it('should update the database appropriately', () =>
-                                send.then(() => Food.findOne({_id: record.id}))
-                                    .then(updated => updated.exportable)
-                                    // remove the Mongoose specific types
-                                    .then(updated => JSON.parse(JSON.stringify(updated)))
-                                    .then(updated => updated.should.deep.equal(expected))
-                            );
+                    const validConversion = {
+                        unit_id: 1,
+                        ratio: 1.5
+                    };
+                    const conversionsSetter = (val) => {
+                        update.conversions = val
+                    };
+                    const conversionsOptions = () => [
+                        {desc: 'conversions is undefined', set: () => null, valid: true},
+                        {desc: 'conversions is a string', set: () => conversionsSetter('Arbitrary string'), valid: false},
+                        {desc: 'conversions is an empty array', set: () => conversionsSetter([]), valid: false}
+                    ].concat(singleConversionOptions().map(singleConversionOption => ({ // add the cases with one object
+                        desc: `conversions array has one element where ${singleConversionOption.desc}`,
+                        set: () => {
+                            singleConversionOption.set();
+                            conversionsSetter([conversion])
+                        },
+                        valid: singleConversionOption.valid
+                    }))).concat(singleConversionOptions().map(singleConversionOption => ({ // add the cases with two objects
+                        desc: `conversions array has a second element where ${singleConversionOption.desc}`,
+                        set: () => {
+                            singleConversionOption.set();
+                            conversionsSetter([validConversion, conversion])
+                        },
+                        valid: singleConversionOption.valid
+                    })));
+
+                    conversionsOptions().map(conversionsOption => {
+                        describe(conversionsOption.desc, () => {
+                            beforeEach(conversionsOption.set);
+
+                            const valid = nameOption.valid && conversionsOption.valid;
+
+                            if (valid) {
+                                unknownRecordTests();
+
+                                describe('the specified id is valid', () => {
+                                    let expected;
+                                    let send;
+
+                                    beforeEach(() => {
+                                        endpoint = `${endpoint}/${record.id}`;
+                                        expected = Object.assign(record, update);
+                                        send = request.put(endpoint).send(update);
+                                    });
+
+                                    it('should return a NoContent response', () =>
+                                        send.then(res => res.status.should.equal(204))
+                                    );
+
+                                    it('should update the database appropriately', () =>
+                                        send.then(() => Food.findOne({_id: record.id}))
+                                            .then(updated => updated.exportable)
+                                            // remove the Mongoose specific types
+                                            .then(updated => JSON.parse(JSON.stringify(updated)))
+                                            .then(updated => updated.should.deep.equal(expected))
+                                    );
+                                });
+                            } else {
+                                it('should return a Bad Request error', () =>
+                                    request.put(`${endpoint}/${record.id}`)
+                                        .send(update)
+                                        .then(res => res.status.should.equal(400))
+                                );
+                            }
+
                         });
-                    } else {
-                        it('should return a Bad Request error', () =>
-                            request.put(`${endpoint}/${record.id}`)
-                                .send(update)
-                                .then(res => res.status.should.equal(400))
-                        );
-                    }
-
-                })
+                    });
+                });
             });
 
         });
