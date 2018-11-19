@@ -119,7 +119,7 @@ router.delete('/:id', (req, res, next) => {
 
 /*** URI: /food/at/:page ***/
 router.get('/at/:page', (req, res, next) => {
-    const ITEMS_PER_PAGE = 3;
+    const ITEMS_PER_PAGE = 20;
 
     const page = Number(req.params.page);
     const error = VLD.required(page, VLD.isBoundedInt(0, Infinity), 'The page parameter must be a non-negative integer');
