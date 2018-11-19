@@ -496,7 +496,11 @@ describe('/food', () => {
                     };
                     const conversionsOptions = () => [
                         {desc: 'conversions is undefined', set: () => null, valid: true},
-                        {desc: 'conversions is a string', set: () => conversionsSetter('Arbitrary string'), valid: false},
+                        {
+                            desc: 'conversions is a string',
+                            set: () => conversionsSetter('Arbitrary string'),
+                            valid: false
+                        },
                         {desc: 'conversions is an empty array', set: () => conversionsSetter([]), valid: false}
                     ].concat(singleConversionOptions().map(singleConversionOption => ({ // add the cases with one object
                         desc: `conversions array has one element where ${singleConversionOption.desc}`,
@@ -559,5 +563,31 @@ describe('/food', () => {
             });
 
         });
+
+        describe('DELETE', () => {
+            unknownRecordTests();
+
+            describe('the specified id is valid', () => {
+                let record;
+                beforeEach(() => {
+                    record = foodRecords[0];
+                    endpoint = `${endpoint}/${record.id}`;
+                });
+
+                it('should return a NoContent response', () =>
+                    request.delete(endpoint).then(res => res.status.should.equal(204))
+                );
+
+                it('should delete the corresponding record', () =>
+                    Food.findOne({_id: record.id})
+                        .then(found => found.should.not.equal(null))
+                        .then(() => request.delete(endpoint))
+                        .then(() => Food.findOne({_id: record.id}))
+                        .then(found => should.equal(found, null))
+                );
+
+            });
+        });
+
     });
 });
