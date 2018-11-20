@@ -589,5 +589,75 @@ describe('/food', () => {
             });
         });
 
+        describe('/at/:page', () => {
+            const ITEMS_PER_PAGE = 20;
+            const expectBadRequestError = () => {
+                it('should return a "Bad Request" error', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(400))
+                )
+            };
+
+            beforeEach(() => {
+                endpoint = `${endpoint}/at`;
+            });
+
+            describe('"page" is a string', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/arbitrary_string`;
+                });
+                expectBadRequestError();
+            });
+
+            describe('"page" is negative', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/-1`;
+                });
+                expectBadRequestError();
+            });
+
+            describe('"page" is a fraction', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/3.4`;
+                });
+                expectBadRequestError();
+            });
+
+            // since we don't know the order of records in the db, it's easier to test all pages at once
+            describe('all valid page requests', () => {
+                it('should collectively return all food items exactly once', () => {
+                    const numPages = Math.ceil(foodRecords.length / ITEMS_PER_PAGE);
+                    const remainder = foodRecords.length % ITEMS_PER_PAGE;
+                    const range = Array(numPages).fill(null).map((_, idx) => idx);
+
+                    // precondition for this test
+                    remainder.should.be.greaterThan(0);
+
+                    return Promise.all(range.map(page =>
+                        request.get(`${endpoint}/${page}`)
+                            .then(res => {
+                                res.status.should.equal(200);
+                                res.body.data.last_page.should.equal(page === numPages - 1);
+                                res.body.data.food.length.should.equal(page === numPages - 1 ? remainder : ITEMS_PER_PAGE);
+                                return res.body.data.food;
+                            })
+                    ))
+                        .then(pages => pages.reduce((a, b) => a.concat(b)))
+                        .then(returned => {
+                            const compareFood = (a, b) => (a.id < b.id ? -1 : 1);
+                            returned.sort(compareFood).should.deep.equal(foodRecords.sort(compareFood))
+                        })
+                });
+            });
+
+            describe('page is too high', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/${Math.ceil(foodRecords.length / ITEMS_PER_PAGE) + 1}`
+                });
+
+                it('should return a "Not Found" error', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(404))
+                )
+            });
+        });
     });
 });
