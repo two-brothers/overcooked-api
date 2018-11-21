@@ -47,16 +47,6 @@ const Recipe = new mongoose.Schema({
                             message: 'Unit ID must be an integer'
                         }
                     },
-                    alternative_unit_id: {
-                        type: Number,
-                        required: false,
-                        min: 0,
-                        max: 12,
-                        validate: {
-                            validator: Number.isInteger,
-                            message: 'Unit ID must be an integer'
-                        }
-                    },
                     food_id: {
                         type: mongoose.Schema.ObjectId,
                         required: true
