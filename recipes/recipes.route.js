@@ -85,8 +85,10 @@ router.post('/', (req, res, next) => {
  * Return the specified recipe and the required food items
  */
 router.get('/:id', (req, res, next) => {
+    const RecordNotFound = new Error('Record Not Found');
+
     Recipe.findOne({_id: req.params.id})
-        .catch(() => next()) // let the 404 handler catch it
+        .catch(() => Promise.reject(RecordNotFound))
         .then(recipe => recipe.exportable)
         .then(recipe => {
             const food_ids =
@@ -105,13 +107,17 @@ router.get('/:id', (req, res, next) => {
                     food: foods
                 }))
         })
-        .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the Recipe'}));
+        .catch(err => err === RecordNotFound ?
+            next() : // let the 404 handler catch it
+            next({status: 500, message: 'Server Error: Unable to retrieve the Recipe'})
+        );
 });
 
 /**
  * Update the specified recipe
  */
 router.put('/:id', (req, res, next) => {
+    const RecordNotFound = new Error('Record Not Found');
     const maxUnitType = UnitTypes.length - 1;
 
     const error = VLD.optional(req.body.title, VLD.isNonEmptyString, 'Recipe title (if defined) must be a non-empty string') ||
@@ -171,7 +177,7 @@ router.put('/:id', (req, res, next) => {
                 return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
 
             return Recipe.findOne({_id: req.params.id})
-                .catch(() => next()) // let the 404 handler catch it
+                .catch(() => Promise.reject(RecordNotFound))
                 .then(recipe => Object.assign(recipe, req.body))
                 .then(recipe => {
                     if (recipe.serves !== undefined && recipe.makes !== undefined)
@@ -182,18 +188,26 @@ router.put('/:id', (req, res, next) => {
                 .then(recipe => record.save())
                 .then(() => res.status(204).send())
         })
-        .catch(err => next({status: 500, message: 'Server Error: Unable to update the specified Recipe'}))
+        .catch(err => err === RecordNotFound ?
+            next() : // let the 404 handler catch it
+            next({status: 500, message: 'Server Error: Unable to update the specified Recipe'})
+        );
 });
 
 /**
  * Delete the specified recipe
  */
 router.delete('/:id', (req, res, next) => {
+    const RecordNotFound = new Error('Record Not Found');
+
     Recipe.findOne({_id: req.params.id})
-        .catch(() => next()) // let the 404 handler catch it
+        .catch(() => Promise.reject(RecordNotFound))
         .then(record => record.remove())
         .then(() => res.status(204).send())
-        .catch(err => next({status: 500, message: 'Server Error: Unable to delete the specified recipe'}));
+        .catch(err => err === RecordNotFound ?
+            next() : // let the 404 handler catch it
+            next({status: 500, message: 'Server Error: Unable to delete the specified recipe'})
+        );
 });
 
 /*** URI: /recipes/at/:page ***/
