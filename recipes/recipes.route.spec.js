@@ -9,6 +9,7 @@ mongoose.Promise = global.Promise;
 const Food = require('../food/module').model;
 const FoodSample = require('../food/module').sample;
 const MaxUnitType = require('../food/module').unit_types.length - 1;
+const Recipe = require('./recipe.model');
 const RecipesSample = require('./recipe.sample');
 const DBNAME = 'TESTINGDB';
 const should = chai.should();
@@ -16,10 +17,10 @@ chai.use(chaiHttp);
 
 let server;
 
-describe.only('/recipes', () => {
+describe('/recipes', () => {
     let endpoint;
     let request;
-    let food_ids;
+    let foodRecords;
     let sampleRecipes;
     let data;
     let initial_timestamp;
@@ -59,20 +60,20 @@ describe.only('/recipes', () => {
                     .then(foodRecord => JSON.parse(JSON.stringify(foodRecord)))
             )
         )
-        // save the food ids
-            .then(foodRecords => {
-                food_ids = foodRecords.map(record => record.id)
+        // save the food records
+            .then(records => {
+                foodRecords = records
             })
-            // replace the food indices with their ids
-            .then(foodRecords => {
+            // replace the food indices with their ids in the recipes
+            .then(() =>
                 sampleRecipes.map(recipe =>
                     recipe.ingredient_sections.map(section =>
                         section.ingredients.map(ingredient => {
-                            ingredient.food_id = food_ids[ingredient.food_id]
+                            ingredient.food_id = foodRecords[ingredient.food_id].id
                         })
                     )
                 )
-            })
+            )
     });
 
     describe('POST', () => {
@@ -245,7 +246,7 @@ describe.only('/recipes', () => {
             });
 
             describe('is a food id', () => {
-                beforeEach(() => setter(food_ids[0]));
+                beforeEach(() => setter(foodRecords[0].id));
                 expectNewRecipeResponse();
             });
         };
@@ -509,6 +510,69 @@ describe.only('/recipes', () => {
         describe('the recipe reference url', () => {
             nonEmptyStringTests((val) => {
                 recipe.reference_url = val;
+            });
+        });
+    });
+
+    describe.only('/:id', () => {
+        let recipeRecords;
+
+        beforeEach(() =>
+            Promise.all(
+                sampleRecipes.map(recipe =>
+                    Recipe.create(recipe)
+                        .then(record => record.exportable)
+                        // remove the Mongoose specific types
+                        .then(record => JSON.parse(JSON.stringify(record)))
+                )
+            )
+                .then(records => {
+                    recipeRecords = records;
+                })
+        );
+
+        afterEach(done => mockgoose.reset(done));
+
+        const unknownRecordTests = () => {
+            describe('specified id is invalid', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/invalid_id`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
+        };
+
+        describe('GET', () => {
+            unknownRecordTests();
+
+            describe('the specified id is valid', () => {
+                let record;
+
+                beforeEach(() => {
+                    record = recipeRecords[0];
+                    endpoint = `${endpoint}/${record.id}`
+                });
+
+                it('should return an OK response', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(200))
+                );
+
+                it('should return the recipe record', () =>
+                    request.get(endpoint)
+                        .then(res => res.body.data.recipe.should.deep.equal(record))
+                );
+
+                it('should return the food items required by the recipe', () =>
+                    request.get(endpoint)
+                        .then(res => res.body.data.food)
+                        .then(foods => foods.map(food => {
+                            const foodRecord = foodRecords.filter(r => r.id === food.id)[0];
+                            food.should.deep.equal(foodRecord);
+                        }))
+                );
             });
         });
     });
