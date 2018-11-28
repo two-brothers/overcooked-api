@@ -49,8 +49,8 @@ router.post('/', (req, res, next) => {
         ), null) ||
         VLD.required(req.body.method, Array.isArray, 'Recipe method must be an array') ||
         req.body.method.reduce((error, step, stepIdx) => error ||
-            VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`)
-        ) ||
+            VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`),
+            null) ||
         VLD.required(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url must be a non-empty string');
 
     if (error)
