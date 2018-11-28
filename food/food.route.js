@@ -28,8 +28,7 @@ router.post('/', (req, res, next) => {
     const error = VLD.required(req.body.name, () => true, 'Food name must be defined') ||
         VLD.required(req.body.name.singular, VLD.isNonEmptyString, 'Food name.singular must be a string') ||
         VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string') ||
-        VLD.required(req.body.conversions, Array.isArray, 'Food conversions must be an array') ||
-        VLD.required(req.body.conversions, (arr) => arr.length > 0, 'Food conversions cannot be empty') ||
+        VLD.required(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions must be a non-empty array') ||
         req.body.conversions.reduce((error, conversion, convIdx) => error || (
             VLD.required(conversion.unit_id, VLD.isBoundedInt(0, maxUnitType),
                 `Food conversions[${convIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
@@ -74,8 +73,7 @@ router.put('/:id', (req, res, next) => {
             VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string') :
             null
         ) ||
-        VLD.optional(req.body.conversions, Array.isArray, 'Food conversions (if defined) must be an array') ||
-        VLD.optional(req.body.conversions, (arr) => arr.length > 0, 'Food conversions (if defined) cannot be empty') ||
+        VLD.optional(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions (if defined) must be a non-empty array') ||
         ( req.body.conversions ?
                 req.body.conversions.reduce((error, conversion, convIdx) => error || (
                     VLD.required(conversion.unit_id, VLD.isBoundedInt(0, maxUnitType),

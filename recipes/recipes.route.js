@@ -32,12 +32,12 @@ router.post('/', (req, res, next) => {
         VLD.mutuallyExclusive([req.body.makes, req.body.serves], 'Recipe serves xor makes must be defined') ||
         VLD.required(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time must be a positive number') ||
         VLD.required(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time must be a positive number') ||
-        VLD.required(req.body.ingredient_sections, Array.isArray, 'Recipe ingredient_sections must be an array') ||
+        VLD.required(req.body.ingredient_sections, VLD.isNonEmptyArray, 'Recipe ingredient_sections must be a non-empty array') ||
         req.body.ingredient_sections.reduce((error, section, secIdx) => error || (
             VLD.optional(section.heading, VLD.isNonEmptyString,
                 `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
-            VLD.required(section.ingredients, Array.isArray,
-                `Recipe ingredient_sections[${secIdx}].ingredients must be an array`) ||
+            VLD.required(section.ingredients, VLD.isNonEmptyArray,
+                `Recipe ingredient_sections[${secIdx}].ingredients must be a non-empty array`) ||
             section.ingredients.reduce((error, ingredient, ingIdx) => error || (
                 VLD.required(ingredient.amount, VLD.isPositiveNumber,
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
@@ -47,7 +47,7 @@ router.post('/', (req, res, next) => {
                     `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`)
             ), null)
         ), null) ||
-        VLD.required(req.body.method, Array.isArray, 'Recipe method must be an array') ||
+        VLD.required(req.body.method, VLD.isNonEmptyArray, 'Recipe method must be a non-empty array') ||
         req.body.method.reduce((error, step, stepIdx) => error ||
             VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`),
             null) ||
@@ -120,13 +120,13 @@ router.put('/:id', (req, res, next) => {
         ([req.body.serves, req.body.makes].every(val => val !== undefined) ? null : 'Recipe serves and makes cannot both be defined') ||
         VLD.optional(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time (if defined) must be a positive number') ||
         VLD.optional(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time (if defined) must be a positive number') ||
-        VLD.optional(req.body.ingredient_sections, Array.isArray, 'Recipe ingredient_sections (if defined) must be an array') ||
+        VLD.optional(req.body.ingredient_sections, VLD.isNonEmptyArray, 'Recipe ingredient_sections (if defined) must be a non-empty array') ||
         ( req.body.ingredient_sections !== undefined ?
                 req.body.ingredient_sections.reduce((error, section, secIdx) => error || (
                     VLD.optional(section.heading, VLD.isNonEmptyString,
                         `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
-                    VLD.required(section.ingredients, Array.isArray,
-                        `Recipe ingredient_sections[${secIdx}].ingredients must be an array`) ||
+                    VLD.required(section.ingredients, VLD.isNonEmptyArray,
+                        `Recipe ingredient_sections[${secIdx}].ingredients must be a non-empty array`) ||
                     section.ingredients.reduce((error, ingredient, ingIdx) => error || (
                         VLD.required(ingredient.amount, VLD.isPositiveNumber,
                             `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a a positive number`) ||
@@ -138,7 +138,7 @@ router.put('/:id', (req, res, next) => {
                 ), null) :
                 null
         ) ||
-        VLD.optional(req.body.method, Array.isArray, 'Recipe method (if defined) must be an array') ||
+        VLD.optional(req.body.method, VLD.isNonEmptyArray, 'Recipe method (if defined) must be a non-empty array') ||
         ( req.body.method !== undefined ?
                 req.body.method.reduce((error, step, stepIdx) => error ||
                     VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`)
