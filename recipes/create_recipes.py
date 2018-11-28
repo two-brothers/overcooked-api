@@ -27,7 +27,7 @@ def createRecipe(idx):
   recipe['serves' if randint(0,1) == 0 else 'makes'] = randint(3, 10)
   recipe['prep_time'] = randint(10,30)
   recipe['cook_time'] = randint(5, 40)
-  num_sections = randint(1,3)
+  num_sections = randint(2,3)
   recipe['ingredient_sections'] = list(map(lambda idx: createSection(idx), range(num_sections)))
   recipe['method'] = ['Do the first thing', 'Then the second', 'The third usually follows']
   recipe['reference_url'] = 'https://example_reference.com'
