@@ -121,9 +121,9 @@ router.put('/:id', (req, res, next) => {
     const maxUnitType = UnitTypes.length - 1;
 
     const error = VLD.optional(req.body.title, VLD.isNonEmptyString, 'Recipe title (if defined) must be a non-empty string') ||
-        VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number') ||
-        VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number') ||
-        ([req.body.serves, req.body.makes].every(val => val !== undefined) ? null : 'Recipe serves and makes cannot both be defined') ||
+    VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number') ||
+    VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number') ||
+    ([req.body.serves, req.body.makes].every(val => val !== undefined)) ? 'Recipe serves and makes cannot both be defined' : null ||
         VLD.optional(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time (if defined) must be a positive number') ||
         VLD.optional(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time (if defined) must be a positive number') ||
         VLD.optional(req.body.ingredient_sections, VLD.isNonEmptyArray, 'Recipe ingredient_sections (if defined) must be a non-empty array') ||
@@ -176,6 +176,7 @@ router.put('/:id', (req, res, next) => {
             if (invalid_ids.length > 0)
                 return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
 
+
             return Recipe.findOne({_id: req.params.id})
                 .catch(() => Promise.reject(RecordNotFound))
                 .then(recipe => Object.assign(recipe, req.body))
@@ -185,7 +186,7 @@ router.put('/:id', (req, res, next) => {
 
                     return recipe;
                 })
-                .then(recipe => record.save())
+                .then(recipe => recipe.save())
                 .then(() => res.status(204).send())
         })
         .catch(err => err === RecordNotFound ?
