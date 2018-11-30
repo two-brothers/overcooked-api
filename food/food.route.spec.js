@@ -533,7 +533,7 @@ describe('/food', () => {
 
                                     beforeEach(() => {
                                         endpoint = `${endpoint}/${record.id}`;
-                                        expected = Object.assign(record, update);
+                                        expected = Object.assign({}, record, update);
                                         send = request.put(endpoint).send(update);
                                     });
 
