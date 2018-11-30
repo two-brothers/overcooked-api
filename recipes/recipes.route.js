@@ -176,14 +176,17 @@ router.put('/:id', (req, res, next) => {
             if (invalid_ids.length > 0)
                 return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
 
-
             return Recipe.findOne({_id: req.params.id})
                 .catch(() => Promise.reject(RecordNotFound))
                 .then(recipe => Object.assign(recipe, req.body))
                 .then(recipe => {
-                    if (recipe.serves !== undefined && recipe.makes !== undefined)
-                        delete (req.body.serves !== undefined ? recipe.makes : recipe.serves);
-
+                    if (recipe.serves !== undefined && recipe.makes !== undefined) {
+                        if (req.body.serves !== undefined)
+                            recipe.makes = undefined;
+                        else {
+                            recipe.serves = undefined;
+                        }
+                    }
                     return recipe;
                 })
                 .then(recipe => recipe.save())
