@@ -166,7 +166,7 @@ router.put('/:id', (req, res, next) => {
                 .map(ingredient => ingredient.food_id)
                 .filter((food, idx, arr) => arr.indexOf(food) === idx)
                 .map(id => // save the invalid ids
-                    Food.find({_id: id})
+                    Food.findOne({_id: id})
                         .then(() => null)
                         .catch(() => id)
                 )
