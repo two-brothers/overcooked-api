@@ -42,20 +42,23 @@ app.use(session({
         secure: true, // only send cookies over https,
         maxAge: 1000 * 60 * 30 // 30 minutes
     },
-    store: new MongoStore({mongooseConnection: mongoose.connection})
+    // TODO: there has got to be a way to stub this in the test file
+    store: process.env.NODE_ENV === 'test' ? null : new MongoStore({mongooseConnection: mongoose.connection})
 }));
 app.disable('x-powered-by'); // Don't reveal that we're using Express
 
 /*** LOGGING ***/
 
-const logDirectory = path.join(__dirname, 'log');
-const accessLogStream = FileStreamRotator.getStream({
-    date_format: 'YYYYMMDD',
-    filename: path.join(logDirectory, 'access-%DATE%.log'),
-    frequency: 'daily',
-    verbose: false
-});
-app.use(morgan('combined', {stream: accessLogStream}));
+if (process.env.NODE_ENV !== 'test') {
+    const logDirectory = path.join(__dirname, 'log');
+    const accessLogStream = FileStreamRotator.getStream({
+        date_format: 'YYYYMMDD',
+        filename: path.join(logDirectory, 'access-%DATE%.log'),
+        frequency: 'daily',
+        verbose: false
+    });
+    app.use(morgan('combined', {stream: accessLogStream}));
+}
 
 /*** ROUTES ***/
 
@@ -73,7 +76,7 @@ app.use('/api', swaggerUI.serve, swaggerUI.setup(api.json));
 /*** ERROR HANDLING ***/
 
 app.use((req, res, next) => {
-   return next({status: 404, message: 'Resource not found'});
+    return next({status: 404, message: 'Resource not found'});
 });
 
 app.use((err, req, res, next) => {
