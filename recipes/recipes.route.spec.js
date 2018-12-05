@@ -1,79 +1,64 @@
+'use strict';
+
 process.env.NODE_ENV = 'test';
 
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const mongoose = require('mongoose');
-const mockgoose = require('mockgoose');
-mongoose.Promise = global.Promise;
 
+const MockDatabase = require('../mock-database').db;
+const MockRecord = require('../mock-database').record;
+const Enumerator = require('../bdd-enumerator/module');
 const Food = require('../food/module').model;
 const FoodSample = require('../food/module').sample;
 const MaxUnitType = require('../food/module').unit_types.length - 1;
 const Recipe = require('./recipe.model');
 const RecipesSample = require('./recipe.sample');
-const DBNAME = 'TESTINGDB';
+
 const should = chai.should();
 chai.use(chaiHttp);
 
-let server;
-
 describe('/recipes', () => {
+    const DatabaseModels = {
+        Food: 'FOOD',
+        Recipe: 'RECIPE'
+    };
+
+    class RecipeRecord extends MockRecord {
+        constructor(updateRecordFn, removeRecordFn) {
+            super(updateRecordFn, removeRecordFn);
+            this.last_updated = Date.now();
+        }
+
+        save() {
+            super.save();
+            this.last_updated = Date.now();
+        }
+    }
+
+    const database = new MockDatabase();
+    database.addModel(Food, DatabaseModels.Food, FoodSample);
+    // the sample recipes have Food ID indices instead of Food IDs. Substitute them.
+    const foodIds = database.getAllRecords(DatabaseModels.Food).map(record => record.id);
+    const recipesSample = JSON.parse(JSON.stringify(RecipesSample));
+    recipesSample.map(recipe => recipe.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
+        ingredient.food_id = foodIds[ingredient.food_id]
+    })));
+    database.addModel(Recipe, DatabaseModels.Recipe, recipesSample, RecipeRecord);
+
+    let server;
+    before(() => {
+        server = require('../www');
+    });
+
+
     let endpoint;
     let request;
-    let foodRecords;
-    let sampleRecipes;
     let data;
-    let initial_timestamp;
-
-    // launch the server and database connection
-    before(done => {
-        mockgoose(mongoose)
-            .then(() => {
-                server = require('../www');
-                if (mongoose.connection.readyState === 0) {
-                    return mongoose.connect(DBNAME);
-                }
-            })
-            .then(done)
-            .catch(done)
-    });
-    // close the server and database connection
-    after(done => {
-        server.close();
-        mongoose.connection.close()
-            .then(done)
-            .catch(done)
-    });
 
     beforeEach(() => {
         endpoint = '/recipes';
         request = chai.request(server);
-        // create a clone of the sample data
-        sampleRecipes = JSON.parse(JSON.stringify(RecipesSample));
-        initial_timestamp = Date.now();
-
-        return Promise.all(
-            FoodSample.map(sample =>
-                Food.create(sample)
-                    .then(foodRecord => foodRecord.exportable)
-                    // remove the Mongoose specific types
-                    .then(foodRecord => JSON.parse(JSON.stringify(foodRecord)))
-            )
-        )
-        // save the food records
-            .then(records => {
-                foodRecords = records
-            })
-            // replace the food indices with their ids in the recipes
-            .then(() =>
-                sampleRecipes.map(recipe =>
-                    recipe.ingredient_sections.map(section =>
-                        section.ingredients.map(ingredient => {
-                            ingredient.food_id = foodRecords[ingredient.food_id].id
-                        })
-                    )
-                )
-            )
+        database.reset();
     });
 
     describe('POST', () => {
@@ -252,8 +237,8 @@ describe('/recipes', () => {
         };
 
         beforeEach(() => {
-            recipe = sampleRecipes[0];
-            data = recipe;
+            // recipe = recipeRecords[0];
+            // data = recipe;
         });
 
         describe('the recipe title', () => {
@@ -515,25 +500,9 @@ describe('/recipes', () => {
     });
 
     describe.only('/:id', () => {
-        let recipeRecords;
 
-        beforeEach(() =>
-            Promise.all(
-                sampleRecipes.map(recipe =>
-                    Recipe.create(recipe)
-                        .then(record => record.exportable)
-                        // remove the Mongoose specific types
-                        .then(record => JSON.parse(JSON.stringify(record)))
-                )
-            )
-                .then(records => {
-                    recipeRecords = records;
-                })
-        );
 
-        afterEach(done => mockgoose.reset(done));
-
-        const unknownRecordTests = () => {
+        describe('GET', () => {
             describe('specified id is invalid', () => {
                 beforeEach(() => {
                     endpoint = `${endpoint}/invalid_id`;
@@ -543,10 +512,6 @@ describe('/recipes', () => {
                     request.get(endpoint).then(res => res.status.should.equal(404))
                 );
             });
-        };
-
-        describe('GET', () => {
-            unknownRecordTests();
 
             describe('the specified id is valid', () => {
                 let record;
@@ -574,6 +539,140 @@ describe('/recipes', () => {
                         }))
                 );
             });
+        });
+
+        describe.only('PUT', () => {
+            const recipe = database.getAllRecords(DatabaseModels.Recipe)[0];
+            const validFoodId = database.getAllRecords(DatabaseModels.Food)[0].id;
+
+            let update;
+
+            beforeEach(() => {
+                update = {};
+            });
+
+            const unknownRecordTest = () => {
+                describe('specified id is invalid', () => {
+                    beforeEach(() => {
+                        endpoint = `${endpoint}/invalid_id`;
+                    });
+
+                    it('should return a NotFound error', () =>
+                        request.put(endpoint).then(res => res.status.should.equal(404))
+                    );
+                });
+            };
+
+
+            const validRecipeTests = () => {
+                unknownRecordTest();
+
+                describe('the specified id is valid', () => {
+                    let expected;
+                    let send;
+
+                    beforeEach(() => {
+                        endpoint = `${endpoint}/${recipe.id}`;
+                        expected = Object.assign({}, recipe, update);
+                        if (update.serves && expected.makes)
+                            delete expected.makes;
+                        if (update.makes && expected.serves)
+                            delete expected.serves;
+                        send = request.put(endpoint).send(update);
+                    });
+
+                    it('should return a NoContent response', () =>
+                        send.then(res => res.status.should.equal(204))
+                    );
+
+                    it('should update the database appropriately', () =>
+                        send
+                            .then(() => database.getRecord(DatabaseModels.Recipe, recipe.id))
+                            .then(updated => {
+                                updated.last_updated.should.not.be.undefined;
+                                should.equal(typeof updated.last_updated, 'number');
+                                updated.last_updated.should.be.gte(expected.last_updated);
+                                expected.last_updated = updated.last_updated;
+                                updated.should.deep.equal(expected);
+                            })
+                    );
+                });
+            };
+
+            const invalidRecipeTests = () => {
+                it('should return a Bad Request error', () =>
+                    request.put(`${endpoint}/${recipe.id}`)
+                        .send(update)
+                        .then(res => res.status.should.equal(400))
+                );
+            };
+
+            // The cross-product of all options is too large to exhaust
+            // Instead, treat each property update individually
+
+            const optional = Enumerator.scenario.presence.optional;
+            const required = Enumerator.scenario.presence.required;
+            const baseObjFn = () => update; // properties are added directly to the update object
+
+            const title = Enumerator.scenario.property('title', baseObjFn, optional(Enumerator.scenario.nonEmptyString));
+            Enumerator.enumerate(title, validRecipeTests, invalidRecipeTests);
+
+            const makesAndServes = Enumerator.scenario.mutexProperties(
+                baseObjFn,
+                new Enumerator.custom.dependent('makes', optional(Enumerator.scenario.finitePositiveNumber)),
+                new Enumerator.custom.dependent('serves', optional(Enumerator.scenario.finitePositiveNumber))
+            );
+            Enumerator.enumerate(makesAndServes, validRecipeTests, invalidRecipeTests);
+
+            const prepTime = Enumerator.scenario.property('prep_time', baseObjFn, optional(Enumerator.scenario.finitePositiveNumber));
+            Enumerator.enumerate(prepTime, validRecipeTests, invalidRecipeTests);
+
+            const cookTime = Enumerator.scenario.property('cook_time', baseObjFn, optional(Enumerator.scenario.finitePositiveNumber));
+            Enumerator.enumerate(cookTime, validRecipeTests, invalidRecipeTests);
+
+            // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex
+            // object like ingredient_sections so I will remove it.
+            const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
+                .filter(scenario => scenario.dependents.length < 2);
+
+            const foodID = [
+                new Enumerator.custom.simple('is an integer', 1, false),
+                new Enumerator.custom.simple('is an empty string', '', false),
+                new Enumerator.custom.simple('is not a valid food id', 'invalid_id', false),
+                new Enumerator.custom.simple('is a valid id', validFoodId, true)
+            ];
+
+            const ingredient_sections = Enumerator.scenario.property(
+                'ingredient_sections',
+                baseObjFn,
+                optional(modifiedNonEmptyArray(
+                    Enumerator.scenario.object([
+                        new Enumerator.custom.dependent('heading', optional(Enumerator.scenario.nonEmptyString)),
+                        new Enumerator.custom.dependent(
+                            'ingredients',
+                            required(modifiedNonEmptyArray(
+                                Enumerator.scenario.object([
+                                    new Enumerator.custom.dependent('amount', required(Enumerator.scenario.finitePositiveNumber)),
+                                    new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
+                                    new Enumerator.custom.dependent('food_id', required(foodID))
+                                ])
+                            ))
+                        )
+                    ])
+                ))
+            );
+            Enumerator.enumerate(ingredient_sections, validRecipeTests, invalidRecipeTests);
+
+            const method = Enumerator.scenario.property('method', baseObjFn,
+                optional(Enumerator.scenario.nonEmptyArray(Enumerator.scenario.nonEmptyString))
+            );
+            Enumerator.enumerate(method, validRecipeTests, invalidRecipeTests);
+
+            const reference = Enumerator.scenario.property('reference_url', baseObjFn,
+                optional(Enumerator.scenario.nonEmptyString)
+            );
+            Enumerator.enumerate(reference, validRecipeTests, invalidRecipeTests);
+
         });
     });
 });
