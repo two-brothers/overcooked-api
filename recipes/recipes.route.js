@@ -146,8 +146,10 @@ router.put('/:id', (req, res, next) => {
         ) ||
         VLD.optional(req.body.method, VLD.isNonEmptyArray, 'Recipe method (if defined) must be a non-empty array') ||
         ( req.body.method !== undefined ?
-                req.body.method.reduce((error, step, stepIdx) => error ||
-                    VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`)
+                req.body.method.reduce(
+                    (error, step, stepIdx) => error ||
+                        VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`),
+                    null
                 ) :
                 null
         ) ||
