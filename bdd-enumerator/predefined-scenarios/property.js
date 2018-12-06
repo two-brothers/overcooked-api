@@ -14,10 +14,11 @@ const Property = (name, baseObjectFn, scenarios) =>
         dependent => undefined,
         dependent => dependent.valid,
         dependent => () => {
-            if (dependent.value !== undefined) {
-                const baseObj = baseObjectFn();
+            const baseObj = baseObjectFn();
+            if (dependent.value !== undefined)
                 baseObj[name] = dependent.value;
-            }
+            else
+                delete baseObj[name];
         },
     );
 
