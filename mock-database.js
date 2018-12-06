@@ -1,11 +1,14 @@
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 
+const MockQuery = require('./mock-query');
+
 /**
  * A class to mock a small set of calls to Mongoose models and easily resets to a known state
- * The supported model functions are:
+ * The supported model functions and parameters are:
  *   - findOne({_id: <specified by user> })
  *   - create(record)
+ *   - find()
  * The supported record functions are:
  *   - save()
  *   - remove()
@@ -114,29 +117,25 @@ class Database {
 
     /**
      * Retrieves all records in the database in the specified model.
-     * Note: this is a convenience function that matches the behaviour of, but not does mock, Model.find({})
      * @param modelName the name of the model
-     * @returns all records (that have not been removed) in the specified mock model.
+     * @param inSpy whether this is being called from the spy (see explanation for getRecord)
+     * @returns {Array<Promise<record>>} all records (that have not been removed) in the specified mock model.
      */
-    getAllRecords(modelName) {
+    getAllRecords(modelName, inSpy = false) {
         const dbModel = this.data[modelName];
 
         if (!dbModel)
             throw new Error(`${modelName} is not a model in the mocked database`);
 
         const allRecords = Object.assign({}, dbModel.records, dbModel.updated);
-        Object.keys(dbModel.removed)
-            .filter(key => dbModel.removed.hasOwnProperty(key))
+
+        Object.getOwnPropertyNames(dbModel.removed)
             .map(id => {
                 delete allRecords[id];
             });
+
         return Object.getOwnPropertyNames(allRecords)
-            .map(id => deepClone(allRecords[id]))
-            .map(record => {
-                delete record.updateRecordFn;
-                delete record.removeRecordFn;
-                return record;
-            });
+            .map(id => this.getRecord(modelName, id, inSpy));
     }
 
     /**
@@ -156,6 +155,11 @@ class Database {
                     model.updated[record.id] = record;
                     return this.getRecord(modelName, record.id, true);
                 });
+                sinon.stub(model.mongoose, 'find').callsFake(() => {
+                    const records = this.getAllRecords(modelName);
+                    records.sort((a, b) => a.id < b.id);
+                    return new MockQuery(records);
+                })
             });
     }
 }

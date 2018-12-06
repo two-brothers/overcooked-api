@@ -17,7 +17,7 @@ chai.use(chaiHttp);
 
 const database = new MockDatabase();
 database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
-const foodRecords = database.getAllRecords(DBStructure.models.Food);
+const foodRecordPromises = database.getAllRecords(DBStructure.models.Food);
 
 describe.only('/food', () => {
     let server;
@@ -74,11 +74,15 @@ describe.only('/food', () => {
             );
 
         // base the new food on an existing one
-        const food = foodRecords[0];
-        beforeEach(() => {
-            data = Object.assign({}, food);
-            delete data.id;
-        });
+        let food;
+        beforeEach(() =>
+            foodRecordPromises[0]
+                .then(food => Object.assign({}, food))
+                .then(food => {
+                    data = food;
+                    delete data.id
+                })
+        )
 
         // the property under test is added directly to the data object
         const baseObjFn = () => data;
@@ -121,25 +125,28 @@ describe.only('/food', () => {
 
             describe('the specified id is valid', () => {
                 it('should return an OK response with the corresponding record', () =>
-                    Promise.all(foodRecords.map(record =>
-                        request.get(`${endpoint}/${record.id}`)
-                            .then(res => {
-                                res.status.should.equal(200);
-                                res.body.data.should.deep.equal(record);
-                            })
+                    Promise.all(foodRecordPromises.map(foodRecordPromise =>
+                        foodRecordPromise.then(food =>
+                            request.get(`${endpoint}/${food.id}`)
+                                .then(res => {
+                                    res.status.should.equal(200);
+                                    res.body.data.should.deep.equal(food)
+                                })
+                        )
                     ))
                 );
-
             });
         });
 
         describe('PUT', () => {
-            const food = foodRecords[0];
-
             let update;
-            beforeEach(() => {
-                update = {};
-            });
+            let food;
+            beforeEach(() =>
+                foodRecordPromises[0].then(record => {
+                    food = record;
+                    update = {};
+                })
+            );
 
             const unknownRecordTest = () => {
                 describe('specified id is invalid', () => {
@@ -227,13 +234,17 @@ describe.only('/food', () => {
             });
 
             describe('the specified id is valid', () => {
-                const food = foodRecords[0];
+                let food;
                 const RecordNotFound = new Error('Record not found before deletion');
                 const RecordFound = new Error('Record found after deletion');
 
-                beforeEach(() => {
-                    endpoint = `${endpoint}/${food.id}`;
-                });
+                beforeEach(() =>
+                    foodRecordPromises[0]
+                        .then(record => {
+                            food = record;
+                            endpoint = `${endpoint}/${food.id}`;
+                        })
+                );
 
                 it('should return a NoContent response', () =>
                     request.delete(endpoint).then(res => res.status.should.equal(204))
@@ -254,7 +265,7 @@ describe.only('/food', () => {
         });
     });
 
-    xdescribe('/at/:page', () => {
+    describe('/at/:page', () => {
         const ITEMS_PER_PAGE = 20;
         const expectBadGetRequest = () => {
             it('should return a "Bad Request" error', () =>
@@ -289,11 +300,21 @@ describe.only('/food', () => {
 
         // since we don't know the order of records in the db, it's easier to test all pages at once
         describe('all valid page requests', () => {
-            it('should collectively return all food items exactly once', () => {
-                const numPages = Math.ceil(foodRecords.length / ITEMS_PER_PAGE);
-                const remainder = foodRecords.length % ITEMS_PER_PAGE;
-                const range = Array(numPages).fill(null).map((_, idx) => idx);
+            const numPages = Math.ceil(foodRecordPromises.length / ITEMS_PER_PAGE);
+            const remainder = foodRecordPromises.length % ITEMS_PER_PAGE;
+            const range = new Array(numPages).fill(null).map((_, idx) => idx);
+            const compareID = (a, b) => (a.id < b.id ? -1 : 1);
 
+            let sorted;
+            before(() =>
+                Promise.all(foodRecordPromises)
+                    .then(records => {
+                        sorted = records;
+                        sorted.sort(compareID);
+                    })
+            );
+
+            it('should collectively return all food items exactly once', () => {
                 // precondition for this test
                 remainder.should.be.greaterThan(0);
 
@@ -308,15 +329,14 @@ describe.only('/food', () => {
                 ))
                     .then(pages => pages.reduce((a, b) => a.concat(b)))
                     .then(returned => {
-                        const compareFood = (a, b) => (a.id < b.id ? -1 : 1);
-                        returned.sort(compareFood).should.deep.equal(foodRecords.sort(compareFood))
+                        returned.sort(compareID).should.deep.equal(sorted)
                     })
             });
         });
 
         describe('page is too high', () => {
             beforeEach(() => {
-                endpoint = `${endpoint}/${Math.ceil(foodRecords.length / ITEMS_PER_PAGE) + 1}`
+                endpoint = `${endpoint}/${Math.ceil(foodRecordPromises.length / ITEMS_PER_PAGE) + 1}`
             });
 
             it('should return a "Not Found" error', () =>
