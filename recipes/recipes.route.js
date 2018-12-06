@@ -56,18 +56,17 @@ router.post('/', (req, res, next) => {
     if (error)
         return next({status: 400, message: error});
 
-    // confirm that all the food_id values exist in the database
-    const food_id_promises = req.body.ingredient_sections.map(section => section.ingredients)
-        .reduce((a, b) => a.concat(b))
-        .map(ingredient => ingredient.food_id)
-        .filter((food, idx, arr) => arr.indexOf(food) === idx)
-        .map(id => // save the invalid ids
-            Food.find({_id: id})
+    Promise.all(
+        // find any invalid ids
+        req.body.ingredient_sections.map(section => section.ingredients)
+            .reduce((a, b) => a.concat(b))
+            .map(ingredient => ingredient.food_id)
+            .filter((food, idx, arr) => arr.indexOf(food) === idx)
+            .map(id => Food.findOne({_id: id})
                 .then(() => null)
                 .catch(() => id)
-        );
-
-    Promise.all(food_id_promises)
+            )
+    )
         .then(invalid_ids => invalid_ids.filter(v => v))
         .then(invalid_ids => {
             if (invalid_ids.length > 0)
@@ -158,10 +157,11 @@ router.put('/:id', (req, res, next) => {
     if (error)
         return next({status: 400, message: error});
 
-    // confirm that all the food_id values exist in the database
-    const invalid_ids = req.body.ingredient_sections !== undefined ?
-        Promise.all(
-            req.body.ingredient_sections.map(section => section.ingredients)
+    Promise.all(
+        // find any invalid ids
+        req.body.ingredient_sections !== undefined ?
+            req.body.ingredient_sections
+                .map(section => section.ingredients)
                 .reduce((a, b) => a.concat(b))
                 .map(ingredient => ingredient.food_id)
                 .filter((food, idx, arr) => arr.indexOf(food) === idx)
@@ -169,11 +169,9 @@ router.put('/:id', (req, res, next) => {
                     Food.findOne({_id: id})
                         .then(() => null)
                         .catch(() => id)
-                )
-        ).then(invalid_ids => invalid_ids.filter(v => v)) :
-        Promise.resolve([]);
-
-    invalid_ids
+                ) : []
+    )
+        .then(invalid_ids => invalid_ids.filter(v => v))
         .then(invalid_ids => {
             if (invalid_ids.length > 0)
                 return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});

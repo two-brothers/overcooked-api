@@ -136,7 +136,7 @@ class Database {
                 const model = this.data[modelName];
                 model.updated = {};
                 model.removed = {};
-                sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id, true))
+                sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id, true));
             });
     }
 }
