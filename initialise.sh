@@ -40,11 +40,12 @@ dev_packages=(
   'chai'
   'chai-http'
   'mocha'
+  'mochawesome',
+  'sinon'
 )
 for p in ${dev_packages[*]}; do
   npm install --save-dev $p@latest
 done;
-npm install --save-dev mockgoose@6.0.8; # The latest version (7.3.3) throw errors
 
 echo "Setting up the mongoose database..."
 echo -n "
