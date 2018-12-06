@@ -71,12 +71,16 @@ class Database {
      * Retrieves the specified record from the database
      * @param modelName the model to search
      * @param id the id of the record
+     * @param inSpy whether this is being called from the spy.
+     *   If so, it will be processed by the system under test and may need to use the mock update/remove functions
+     *   If its being called from the test itself, it should remove the mock artifacts since it may need to be compared
+     *   to a value returned from the server. It is cleaner and more correct without them anyway.
      * @returns
      *   - a successful promise with the record if it is available
      *   - an unsuccessful promise if the record was removed or cannot be found
      *   - throws an error if the model does not exist in the database
      */
-    getRecord(modelName, id) {
+    getRecord(modelName, id, inSpy = false) {
         const dbModel = this.data[modelName];
 
         if (!dbModel)
@@ -86,10 +90,10 @@ class Database {
             return Promise.reject(`${modelName} record with ${id} has been removed`);
 
         if (dbModel.updated[id])
-            return Promise.resolve(dbModel.updated[id].clone());
+            return Promise.resolve(dbModel.updated[id].clone(inSpy));
 
         if (dbModel.records[id])
-            return Promise.resolve(dbModel.records[id].clone());
+            return Promise.resolve(dbModel.records[id].clone(inSpy));
 
         return Promise.reject(`No ${modelName} record with ${id} has been found`);
     }
@@ -112,7 +116,13 @@ class Database {
             .map(id => {
                 delete allRecords[id];
             });
-        return Object.getOwnPropertyNames(allRecords).map(id => allRecords[id]);
+        return Object.getOwnPropertyNames(allRecords)
+            .map(id => deepClone(allRecords[id]))
+            .map(record => {
+                delete record.updateRecordFn;
+                delete record.removeRecordFn;
+                return record;
+            });
     }
 
     /**
@@ -126,7 +136,7 @@ class Database {
                 const model = this.data[modelName];
                 model.updated = {};
                 model.removed = {};
-                sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id))
+                sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id, true))
             });
     }
 }
@@ -183,10 +193,16 @@ class Record {
      * Create a clone of this record.
      * For efficiency reasons, the Mock database stores a frozen copy of the records to be shared between tests
      * If any of those records need to be modified during a test, pass a copy instead
+     * @param retainMockFns whether the returned value should maintain the Mock artifact functions
      */
-    clone() {
+    clone(retainMockFns) {
         const clone = Object.create(Object.getPrototypeOf(this));
-        return Object.assign(clone, deepClone(this));
+        Object.assign(clone, deepClone(this));
+        if (!retainMockFns) {
+            delete clone.updateRecordFn;
+            delete clone.removeRecordFn;
+        }
+        return clone;
     }
 }
 
