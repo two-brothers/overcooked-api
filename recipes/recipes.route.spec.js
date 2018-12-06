@@ -27,8 +27,18 @@ recipesSample.map(recipe => recipe.ingredient_sections.map(sections => sections.
 })));
 database.addModel(Recipe, DBStructure.models.Recipe, recipesSample, DBStructure.records.Recipe);
 
+const optional = Enumerator.scenario.presence.optional;
+const required = Enumerator.scenario.presence.required;
 
-describe('/recipes', () => {
+const validFoodId = database.getAllRecords(DBStructure.models.Food)[0].id;
+const foodID = [
+    new Enumerator.custom.simple('is an integer', 1, false),
+    new Enumerator.custom.simple('is an empty string', '', false),
+    new Enumerator.custom.simple('is not a valid food id', 'invalid_id', false),
+    new Enumerator.custom.simple('is a valid id', validFoodId, true)
+];
+
+describe.only('/recipes', () => {
     let server;
     before(() => {
         server = require('../www');
@@ -37,7 +47,6 @@ describe('/recipes', () => {
 
     let endpoint;
     let request;
-    let data;
 
     beforeEach(() => {
         endpoint = '/recipes';
@@ -47,7 +56,7 @@ describe('/recipes', () => {
 
     describe('POST', () => {
         const initial_timestamp = Date.now();
-        let recipe;
+        let data;
 
         /**
          * Sends the value of 'data' to the listener at 'endpoint' and confirms that
@@ -84,407 +93,80 @@ describe('/recipes', () => {
                         // is no risk of time-drift errors
                         res.body.data.last_updated.should.not.be.undefined;
                         should.equal(typeof res.body.data.last_updated, 'number');
-                        res.body.data.last_updated.should.be.greaterThan(initial_timestamp);
-                        res.body.data.last_updated.should.be.lessThan(Date.now());
+                        res.body.data.last_updated.should.be.gte(initial_timestamp);
+                        res.body.data.last_updated.should.be.lte(Date.now());
                         delete res.body.data.last_updated;
 
                         res.body.data.should.deep.equal(data);
                     })
             );
 
-        /**
-         * Uses the 'setter' function to set the value of a property in 'data' to confirm that:
-         *   - 'expectBadPostRequest' is successful when the property is not a non-empty string
-         *   - 'expectNewFoodResponse' is successful when the property is a non-empty string
-         */
-        const nonEmptyStringTests = (setter) => {
-            describe('is a number', () => {
-                beforeEach(() => setter(0));
-                expectBadPostRequest();
-            });
-
-            describe('is an empty string', () => {
-                beforeEach(() => setter(''));
-                expectBadPostRequest();
-            });
-
-            describe('is a non-empty string', () => {
-                beforeEach(() => setter('Arbitrary string'));
-                expectNewRecipeResponse();
-            });
-        };
-
-        /**
-         * Uses the 'setter' function to set the value of a property in 'data' to confirm that:
-         *   - 'expectBadPostRequest' is successful when the property is not a positive number
-         *   - 'expectNewFoodResponse' is successful when the property is a positive number
-         */
-        const positiveNumberTests = (setter) => {
-            describe('is a string', () => {
-                beforeEach(() => setter('Arbitrary string'));
-                expectBadPostRequest();
-            });
-
-            describe('is a negative number', () => {
-                beforeEach(() => setter(-1));
-                expectBadPostRequest();
-            });
-
-            describe('is zero', () => {
-                beforeEach(() => setter(0));
-                expectBadPostRequest();
-            });
-
-            describe('is one', () => {
-                beforeEach(() => setter(1));
-                expectNewRecipeResponse();
-            });
-
-            describe('is another positive integer', () => {
-                beforeEach(() => setter(2));
-                expectNewRecipeResponse();
-            });
-
-            describe('is a positive fraction', () => {
-                beforeEach(() => setter(2.4));
-                expectNewRecipeResponse();
-            });
-        };
-
-        /**
-         * Uses the 'setter' function to set the value of a property in 'data' to confirm that:
-         *   - 'expectBadPostRequest' is successful when the property is not an integer bounded as specified
-         *   - 'expectNewFoodResponse' is successful when the property is an integer bounded as specified
-         * This function assumes lowerBound and upperBound have been set to integers
-         */
-        const boundIntegerTests = (lowerBound, upperBound, setter) => {
-            describe('is a string', () => {
-                beforeEach(() => setter('Arbitrary string'));
-                expectBadPostRequest();
-            });
-
-            describe('is less than the lower bound', () => {
-                beforeEach(() => setter(lowerBound - 1));
-                expectBadPostRequest();
-            });
-
-            describe('is equal to the lower bound', () => {
-                beforeEach(() => setter(lowerBound));
-                expectNewRecipeResponse();
-            });
-
-            describe('is an integer in the middle of the specified range', () => {
-                beforeEach(() => setter(Math.floor(lowerBound + upperBound) / 2));
-                expectNewRecipeResponse();
-            });
-
-            describe('is equal to the upper bound', () => {
-                beforeEach(() => setter(upperBound));
-                expectNewRecipeResponse();
-            });
-
-            describe('is more than the upper bound', () => {
-                beforeEach(() => setter(upperBound + 1));
-                expectBadPostRequest();
-            });
-
-            describe('is not an integer', () => {
-                beforeEach(() => setter(lowerBound + 0.3));
-                expectBadPostRequest();
-            });
-        };
-
-        /**
-         * Uses the 'setter' function to set the value of a property in 'data' to confirm that:
-         *   - 'expectBadPostRequest' is successful when the property is not a food id
-         *   - 'expectNewFoodResponse' is successful when the property is a food id
-         */
-        const foodIDTests = (setter) => {
-            describe('is a number', () => {
-                beforeEach(() => setter(0));
-                expectBadPostRequest();
-            });
-
-            describe('is an empty string', () => {
-                beforeEach(() => setter(''));
-                expectBadPostRequest();
-            });
-
-            describe('is an non food id string', () => {
-                beforeEach(() => setter('Arbitrary string'));
-                expectBadPostRequest();
-            });
-
-            describe('is a food id', () => {
-                beforeEach(() => setter(foodRecords[0].id));
-                expectNewRecipeResponse();
-            });
-        };
-
+        // base the new recipe on an existing one
+        const recipe = database.getAllRecords(DBStructure.models.Recipe)[0];
         beforeEach(() => {
-            // recipe = recipeRecords[0];
-            // data = recipe;
+            data = Object.assign({}, recipe);
+            // remove the properties set by the server
+            delete data.id;
+            delete data.last_updated;
         });
 
-        describe('the recipe title', () => {
-            describe('is not defined', () => {
-                beforeEach(() => {
-                    delete recipe.title;
-                });
+        // the property under test is added directly to the data object
+        const baseObjFn = () => data;
 
-                expectBadPostRequest();
-            });
+        const title = Enumerator.scenario.property('title', baseObjFn, required(Enumerator.scenario.nonEmptyString));
+        Enumerator.enumerate(title, expectNewRecipeResponse, expectBadPostRequest);
 
-            nonEmptyStringTests((val) => {
-                recipe.title = val;
-            });
-        });
+        const makesAndServes = Enumerator.scenario.xorProperties(
+            baseObjFn,
+            new Enumerator.custom.dependent('makes', optional(Enumerator.scenario.finitePositiveNumber)),
+            new Enumerator.custom.dependent('serves', optional(Enumerator.scenario.finitePositiveNumber))
+        );
+        Enumerator.enumerate(makesAndServes, expectNewRecipeResponse, expectBadPostRequest);
 
-        describe('the recipe serves property is not defined', () => {
-            beforeEach(() => {
-                if (recipe.serves) {
-                    delete recipe.serves;
-                }
-            });
+        const prepTime = Enumerator.scenario.property('prep_time', baseObjFn, required(Enumerator.scenario.finitePositiveNumber));
+        Enumerator.enumerate(prepTime, expectNewRecipeResponse, expectBadPostRequest);
 
-            describe('and the recipe makes property', () => {
-                describe('is not defined', () => {
-                    beforeEach(() => {
-                        if (recipe.makes) {
-                            delete recipe.makes;
-                        }
-                    });
+        const cookTime = Enumerator.scenario.property('cook_time', baseObjFn, required(Enumerator.scenario.finitePositiveNumber));
+        Enumerator.enumerate(cookTime, expectNewRecipeResponse, expectBadPostRequest);
 
-                    expectBadPostRequest();
-                });
+        // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex
+        // object like ingredient_sections so I will remove it.
+        const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
+            .filter(scenario => scenario.dependents.length < 2);
 
-                positiveNumberTests((val) => {
-                    recipe.makes = val;
-                });
-            });
-        });
+        const ingredient_sections = Enumerator.scenario.property(
+            'ingredient_sections',
+            baseObjFn,
+            required(modifiedNonEmptyArray(
+                Enumerator.scenario.object([
+                    new Enumerator.custom.dependent('heading', optional(Enumerator.scenario.nonEmptyString)),
+                    new Enumerator.custom.dependent(
+                        'ingredients',
+                        required(modifiedNonEmptyArray(
+                            Enumerator.scenario.object([
+                                new Enumerator.custom.dependent('amount', required(Enumerator.scenario.finitePositiveNumber)),
+                                new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
+                                new Enumerator.custom.dependent('food_id', required(foodID))
+                            ])
+                        ))
+                    )
+                ])
+            ))
+        );
+        Enumerator.enumerate(ingredient_sections, expectNewRecipeResponse, expectBadPostRequest);
 
-        describe('the recipe makes property is not defined', () => {
-            beforeEach(() => {
-                if (recipe.makes) {
-                    delete recipe.makes;
-                }
-            });
+        const method = Enumerator.scenario.property('method', baseObjFn,
+            required(Enumerator.scenario.nonEmptyArray(Enumerator.scenario.nonEmptyString))
+        );
+        Enumerator.enumerate(method, expectNewRecipeResponse, expectBadPostRequest);
 
-            describe('and the recipe serves property', () => {
-                describe('is not defined', null); // already tested
-
-                positiveNumberTests((val) => {
-                    recipe.serves = val;
-                });
-            });
-        });
-
-        describe('the recipes serves and makes properties are both defined', () => {
-            beforeEach(() => {
-                recipe.serves = 3;
-                recipe.makes = 9
-            });
-
-            expectBadPostRequest();
-        });
-
-        describe('the recipe prep_time', () => {
-            positiveNumberTests((val) => {
-                recipe.prep_time = val;
-            });
-        });
-
-        describe('the recipe cook_time', () => {
-            positiveNumberTests((val) => {
-                recipe.cook_time = val;
-            });
-        });
-
-        describe('the recipe ingredient_sections', () => {
-            describe('is not defined', () => {
-                beforeEach(() => {
-                    delete recipe.ingredient_sections;
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is a string', () => {
-                beforeEach(() => {
-                    recipe.ingredient_sections = 'Arbitrary string';
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is an empty array', () => {
-                beforeEach(() => {
-                    recipe.ingredient_sections = [];
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is an array where', () => {
-                let section;
-
-                /**
-                 * Manipulates the 'section' property and ensures the appropriate response is
-                 * returned from the endpoint
-                 */
-                const sectionTests = () => {
-                    describe('heading', () => {
-                        describe('is not defined', () => {
-                            beforeEach(() => {
-                                if (section.heading) {
-                                    delete section.heading;
-                                }
-                            });
-
-                            expectNewRecipeResponse();
-                        });
-
-                        nonEmptyStringTests((val) => {
-                            section.heading = val;
-                        });
-                    });
-
-                    describe('ingredients', () => {
-                        describe('is not defined', () => {
-                            beforeEach(() => {
-                                delete section.ingredients;
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-
-                        describe('is a string', () => {
-                            beforeEach(() => {
-                                section.ingredients = 'Arbitrary string';
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is an empty array', () => {
-                            beforeEach(() => {
-                                section.ingredients = [];
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is an array where', () => {
-                            let ingredient;
-
-                            const ingredientTests = () => {
-                                describe('amount', () => {
-                                    positiveNumberTests((val) => {
-                                        ingredient.amount = val;
-                                    });
-                                });
-
-                                describe('unit_id', () => {
-                                    boundIntegerTests(0, MaxUnitType, (val) => {
-                                        ingredient.unit_id = val;
-                                    })
-                                });
-
-                                describe('food_id', () => {
-                                    foodIDTests((val) => {
-                                        ingredient.food_id = val;
-                                    });
-                                });
-                            };
-
-                            describe('the first ingredient', () => {
-                                beforeEach(() => {
-                                    ingredient = section.ingredients[0];
-                                });
-
-                                ingredientTests();
-                            });
-
-                            describe('the last ingredient', () => {
-                                beforeEach(() => {
-                                    ingredient = section.ingredients[section.ingredients.length - 1];
-                                });
-
-                                ingredientTests();
-                            });
-                        });
-                    });
-                };
-
-                describe('the first section', () => {
-                    beforeEach(() => {
-                        section = recipe.ingredient_sections[0]
-                    });
-
-                    sectionTests();
-                });
-
-                describe('the last section', () => {
-                    beforeEach(() => {
-                        section = recipe.ingredient_sections[recipe.ingredient_sections.length - 1];
-                    });
-
-                    sectionTests();
-                });
-            });
-        });
-
-        describe('the recipe method', () => {
-            describe('is not defined', () => {
-                beforeEach(() => {
-                    delete recipe.method;
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is a string', () => {
-                beforeEach(() => {
-                    recipe.method = 'Arbitrary string';
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is an empty array', () => {
-                beforeEach(() => {
-                    recipe.method = [];
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is an array where', () => {
-
-                describe('the first step', () => {
-                    nonEmptyStringTests((val) => {
-                        recipe.method[0] = val;
-                    });
-                });
-
-                describe('the last step', () => {
-                    nonEmptyStringTests((val) => {
-                        recipe.method[recipe.method.length - 1] = val;
-                    });
-                });
-            });
-        });
-
-        describe('the recipe reference url', () => {
-            nonEmptyStringTests((val) => {
-                recipe.reference_url = val;
-            });
-        });
+        const reference = Enumerator.scenario.property('reference_url', baseObjFn,
+            required(Enumerator.scenario.nonEmptyString)
+        );
+        Enumerator.enumerate(reference, expectNewRecipeResponse, expectBadPostRequest);
     });
 
-    describe.only('/:id', () => {
+    describe('/:id', () => {
         describe('GET', () => {
             describe('specified id is invalid', () => {
                 beforeEach(() => {
@@ -530,7 +212,6 @@ describe('/recipes', () => {
 
         describe('PUT', () => {
             const recipe = database.getAllRecords(DBStructure.models.Recipe)[0];
-            const validFoodId = database.getAllRecords(DBStructure.models.Food)[0].id;
 
             let update;
 
@@ -597,8 +278,6 @@ describe('/recipes', () => {
             // The cross-product of all options is too large to exhaust
             // Instead, treat each property update individually
 
-            const optional = Enumerator.scenario.presence.optional;
-            const required = Enumerator.scenario.presence.required;
             const baseObjFn = () => update; // properties are added directly to the update object
 
             const title = Enumerator.scenario.property('title', baseObjFn, optional(Enumerator.scenario.nonEmptyString));
@@ -621,13 +300,6 @@ describe('/recipes', () => {
             // object like ingredient_sections so I will remove it.
             const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
                 .filter(scenario => scenario.dependents.length < 2);
-
-            const foodID = [
-                new Enumerator.custom.simple('is an integer', 1, false),
-                new Enumerator.custom.simple('is an empty string', '', false),
-                new Enumerator.custom.simple('is not a valid food id', 'invalid_id', false),
-                new Enumerator.custom.simple('is a valid id', validFoodId, true)
-            ];
 
             const ingredient_sections = Enumerator.scenario.property(
                 'ingredient_sections',
