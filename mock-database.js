@@ -16,6 +16,14 @@ const MockQuery = require('./mock-query');
 class Database {
 
     /**
+     * A special record id that can be passed to the getRecord function to get any (unspecified) record
+     * Importantly, this can be used in tests that are constructed before the database and records are initialised.
+     */
+    static get A_VALID_RECORD_ID() {
+        return 'A_VALID_RECORD_ID';
+    };
+
+    /**
      * Initialise the database and stub the mongoose.connect function
      */
     constructor() {
@@ -99,6 +107,12 @@ class Database {
      */
     getRecord(modelName, id, inSpy = false) {
         const dbModel = this.data[modelName];
+
+        if (id === Database.A_VALID_RECORD_ID) {
+            id = Object.getOwnPropertyNames(dbModel.records)
+                .filter(id => dbModel.removed[id] === undefined)
+                .filter(id => dbModel.updated[id] === undefined)[0];
+        }
 
         if (!dbModel)
             throw new Error(`${modelName} is not a model in the mocked database`);
