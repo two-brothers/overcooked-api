@@ -17,33 +17,29 @@ const RecipesSample = require('./recipe.sample');
 const should = chai.should();
 chai.use(chaiHttp);
 
-const database = new MockDatabase();
-database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
-// the sample recipes have Food ID indices instead of Food IDs. Substitute them.
-const foodIds = database.getAllRecords(DBStructure.models.Food).map(record => record.id);
-const recipesSample = JSON.parse(JSON.stringify(RecipesSample));
-recipesSample.map(recipe => recipe.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
-    ingredient.food_id = foodIds[ingredient.food_id]
-})));
-database.addModel(Recipe, DBStructure.models.Recipe, recipesSample, DBStructure.records.Recipe);
-
-const optional = Enumerator.scenario.presence.optional;
-const required = Enumerator.scenario.presence.required;
-
-const validFoodId = database.getAllRecords(DBStructure.models.Food)[0].id;
-const foodID = [
-    new Enumerator.custom.simple('is an integer', 1, false),
-    new Enumerator.custom.simple('is an empty string', '', false),
-    new Enumerator.custom.simple('is not a valid food id', 'invalid_id', false),
-    new Enumerator.custom.simple('is a valid id', validFoodId, true)
-];
 
 describe('/recipes', () => {
     let server;
+    let database;
     before(() => {
-        server = require('../www');
+        database = new MockDatabase();
+        database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
+        // the sample recipes have Food ID indices instead of Food IDs. Substitute them.
+        const recipeSamples = JSON.parse(JSON.stringify(RecipesSample));
+
+        return Promise.all(database.getAllRecords(DBStructure.models.Food))
+            .then(foodRecords => {
+                recipeSamples.map(recipe => recipe.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
+                    ingredient.food_id = foodRecords[ingredient.food_id].id;
+                })))
+            })
+            .then(() => database.addModel(Recipe, DBStructure.models.Recipe, recipeSamples, DBStructure.records.Recipe))
+            .then(() => {
+                server = require('../www');
+            });
     });
 
+    after(() => database.disconnect());
 
     let endpoint;
     let request;
@@ -53,6 +49,14 @@ describe('/recipes', () => {
         request = chai.request(server);
         database.reset();
     });
+
+
+    const foodIDScenarios = [
+        new Enumerator.custom.simple('is an integer', 1, false),
+        new Enumerator.custom.simple('is an empty string', '', false),
+        new Enumerator.custom.simple('is not a valid food id', 'invalid_id', false),
+        new Enumerator.custom.simple('is a valid id', MockDatabase.A_VALID_RECORD_ID, true)
+    ];
 
     describe('POST', () => {
         const initial_timestamp = Date.now();
@@ -101,17 +105,20 @@ describe('/recipes', () => {
                     })
             );
 
-        // base the new recipe on an existing one
-        const recipe = database.getAllRecords(DBStructure.models.Recipe)[0];
-        beforeEach(() => {
-            data = Object.assign({}, recipe);
-            // remove the properties set by the server
-            delete data.id;
-            delete data.last_updated;
-        });
+        beforeEach(() =>
+            database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                .then(recipe => {
+                    data = Object.assign({}, recipe);
+                    // remove the properties set by the server
+                    delete data.id;
+                    delete data.last_updated;
+                })
+        );
 
         // the property under test is added directly to the data object
         const baseObjFn = () => data;
+        const optional = Enumerator.scenario.presence.optional;
+        const required = Enumerator.scenario.presence.required;
 
         const title = Enumerator.scenario.property('title', baseObjFn, required(Enumerator.scenario.nonEmptyString));
         Enumerator.enumerate(title, expectNewRecipeResponse, expectBadPostRequest);
@@ -146,7 +153,7 @@ describe('/recipes', () => {
                             Enumerator.scenario.object([
                                 new Enumerator.custom.dependent('amount', required(Enumerator.scenario.finitePositiveNumber)),
                                 new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                                new Enumerator.custom.dependent('food_id', required(foodID))
+                                new Enumerator.custom.dependent('food_id', required(foodIDScenarios))
                             ])
                         ))
                     )
@@ -181,10 +188,16 @@ describe('/recipes', () => {
             describe('the specified id is valid', () => {
                 let recipeRecord, foodRecords;
 
-                before(() => {
-                    recipeRecord = database.getAllRecords(DBStructure.models.Recipe)[0];
-                    foodRecords = database.getAllRecords(DBStructure.models.Food);
-                });
+                before(() =>
+                    database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                        .then(record => {
+                            recipeRecord = record
+                        })
+                        .then(() => Promise.all(database.getAllRecords(DBStructure.models.Food)))
+                        .then(foods => {
+                            foodRecords = foods;
+                        })
+                );
 
                 beforeEach(() => {
                     endpoint = `${endpoint}/${recipeRecord.id}`;
@@ -211,13 +224,17 @@ describe('/recipes', () => {
         });
 
         describe('PUT', () => {
-            const recipe = database.getAllRecords(DBStructure.models.Recipe)[0];
 
             let update;
+            let recipe;
 
-            beforeEach(() => {
-                update = {};
-            });
+            beforeEach(() =>
+                database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                    .then(record => {
+                        recipe = record;
+                        update = {};
+                    })
+            );
 
             const unknownRecordTest = () => {
                 describe('specified id is invalid', () => {
@@ -279,6 +296,8 @@ describe('/recipes', () => {
             // Instead, treat each property update individually
 
             const baseObjFn = () => update; // properties are added directly to the update object
+            const optional = Enumerator.scenario.presence.optional;
+            const required = Enumerator.scenario.presence.required;
 
             const title = Enumerator.scenario.property('title', baseObjFn, optional(Enumerator.scenario.nonEmptyString));
             Enumerator.enumerate(title, validRecipeTests, invalidRecipeTests);
@@ -313,7 +332,7 @@ describe('/recipes', () => {
                                 Enumerator.scenario.object([
                                     new Enumerator.custom.dependent('amount', required(Enumerator.scenario.finitePositiveNumber)),
                                     new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                                    new Enumerator.custom.dependent('food_id', required(foodID))
+                                    new Enumerator.custom.dependent('food_id', required(foodIDScenarios))
                                 ])
                             ))
                         )

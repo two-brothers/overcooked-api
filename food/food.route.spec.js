@@ -15,15 +15,17 @@ const FoodSample = require('./food.sample');
 const should = chai.should();
 chai.use(chaiHttp);
 
-const database = new MockDatabase();
-database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
-const foodRecordPromises = database.getAllRecords(DBStructure.models.Food);
-
-describe.only('/food', () => {
+describe('/food', () => {
     let server;
+    let database;
+
     before(() => {
+        database = new MockDatabase();
+        database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
         server = require('../www');
     });
+
+    after(() => database.disconnect());
 
     let endpoint;
     let request;
@@ -33,9 +35,6 @@ describe.only('/food', () => {
         request = chai.request(server);
         database.reset();
     });
-
-    const optional = Enumerator.scenario.presence.optional;
-    const required = Enumerator.scenario.presence.required;
 
     describe('POST', () => {
         let data;
@@ -74,18 +73,19 @@ describe.only('/food', () => {
             );
 
         // base the new food on an existing one
-        let food;
         beforeEach(() =>
-            foodRecordPromises[0]
+            database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
                 .then(food => Object.assign({}, food))
                 .then(food => {
                     data = food;
                     delete data.id
                 })
-        )
+        );
 
         // the property under test is added directly to the data object
         const baseObjFn = () => data;
+
+        const required = Enumerator.scenario.presence.required;
 
         const name = Enumerator.scenario.property('name', baseObjFn,
             required(Enumerator.scenario.object([
@@ -125,15 +125,16 @@ describe.only('/food', () => {
 
             describe('the specified id is valid', () => {
                 it('should return an OK response with the corresponding record', () =>
-                    Promise.all(foodRecordPromises.map(foodRecordPromise =>
-                        foodRecordPromise.then(food =>
-                            request.get(`${endpoint}/${food.id}`)
-                                .then(res => {
-                                    res.status.should.equal(200);
-                                    res.body.data.should.deep.equal(food)
-                                })
+                    Promise.all(database.getAllRecords(DBStructure.models.Food)
+                        .map(foodRecordPromise => foodRecordPromise.then(food =>
+                                request.get(`${endpoint}/${food.id}`)
+                                    .then(res => {
+                                        res.status.should.equal(200);
+                                        res.body.data.should.deep.equal(food)
+                                    })
+                            )
                         )
-                    ))
+                    )
                 );
             });
         });
@@ -141,11 +142,13 @@ describe.only('/food', () => {
         describe('PUT', () => {
             let update;
             let food;
+
             beforeEach(() =>
-                foodRecordPromises[0].then(record => {
-                    food = record;
-                    update = {};
-                })
+                database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
+                    .then(record => {
+                        food = record;
+                        update = {};
+                    })
             );
 
             const unknownRecordTest = () => {
@@ -196,6 +199,8 @@ describe.only('/food', () => {
             };
 
             const baseObjFn = () => update; // properties are added directly to the update object
+            const optional = Enumerator.scenario.presence.optional;
+            const required = Enumerator.scenario.presence.required;
 
             const name = Enumerator.scenario.property('name', baseObjFn,
                 optional(Enumerator.scenario.object([
@@ -239,7 +244,7 @@ describe.only('/food', () => {
                 const RecordFound = new Error('Record found after deletion');
 
                 beforeEach(() =>
-                    foodRecordPromises[0]
+                    database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
                         .then(record => {
                             food = record;
                             endpoint = `${endpoint}/${food.id}`;
@@ -300,19 +305,21 @@ describe.only('/food', () => {
 
         // since we don't know the order of records in the db, it's easier to test all pages at once
         describe('all valid page requests', () => {
-            const numPages = Math.ceil(foodRecordPromises.length / ITEMS_PER_PAGE);
-            const remainder = foodRecordPromises.length % ITEMS_PER_PAGE;
-            const range = new Array(numPages).fill(null).map((_, idx) => idx);
+            let numPages, remainder, range;
             const compareID = (a, b) => (a.id < b.id ? -1 : 1);
 
             let sorted;
-            before(() =>
-                Promise.all(foodRecordPromises)
+            before(() => {
+                const recordPromises = database.getAllRecords(DBStructure.models.Food);
+                numPages = Math.ceil(recordPromises.length / ITEMS_PER_PAGE);
+                remainder = recordPromises.length % ITEMS_PER_PAGE;
+                range = new Array(numPages).fill(null).map((_, idx) => idx);
+                return Promise.all(recordPromises)
                     .then(records => {
                         sorted = records;
                         sorted.sort(compareID);
                     })
-            );
+            });
 
             it('should collectively return all food items exactly once', () => {
                 // precondition for this test
@@ -336,7 +343,8 @@ describe.only('/food', () => {
 
         describe('page is too high', () => {
             beforeEach(() => {
-                endpoint = `${endpoint}/${Math.ceil(foodRecordPromises.length / ITEMS_PER_PAGE) + 1}`
+                const page = Math.ceil(database.getAllRecords(DBStructure.models.Food).length / ITEMS_PER_PAGE) + 1;
+                endpoint = `${endpoint}/${page}`
             });
 
             it('should return a "Not Found" error', () =>
