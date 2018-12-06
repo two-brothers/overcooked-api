@@ -1,0 +1,3 @@
+[submodule "bdd-enumerator"]
+	path = bdd-enumerator
+	url = https://github.com/nikeshnazareth/bdd-enumerator.git
