@@ -6,7 +6,7 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 
 const MockDatabase = require('../mock-database').db;
-const MockRecord = require('../mock-database').record;
+const DBStructure = require('./recipes.route.mock-db.spec');
 const Enumerator = require('../bdd-enumerator/module');
 const Food = require('../food/module').model;
 const FoodSample = require('../food/module').sample;
@@ -17,44 +17,18 @@ const RecipesSample = require('./recipe.sample');
 const should = chai.should();
 chai.use(chaiHttp);
 
+const database = new MockDatabase();
+database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
+// the sample recipes have Food ID indices instead of Food IDs. Substitute them.
+const foodIds = database.getAllRecords(DBStructure.models.Food).map(record => record.id);
+const recipesSample = JSON.parse(JSON.stringify(RecipesSample));
+recipesSample.map(recipe => recipe.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
+    ingredient.food_id = foodIds[ingredient.food_id]
+})));
+database.addModel(Recipe, DBStructure.models.Recipe, recipesSample, DBStructure.records.Recipe);
+
+
 describe('/recipes', () => {
-    const DatabaseModels = {
-        Food: 'FOOD',
-        Recipe: 'RECIPE'
-    };
-
-    class FoodRecord extends MockRecord {
-        get exportable() {
-            return this;
-        }
-    }
-
-    class RecipeRecord extends MockRecord {
-        constructor(updateRecordFn, removeRecordFn) {
-            super(updateRecordFn, removeRecordFn);
-            this.last_updated = Date.now();
-        }
-
-        save() {
-            super.save();
-            this.last_updated = Date.now();
-        }
-
-        get exportable() {
-            return this;
-        }
-    }
-
-    const database = new MockDatabase();
-    database.addModel(Food, DatabaseModels.Food, FoodSample, FoodRecord);
-    // the sample recipes have Food ID indices instead of Food IDs. Substitute them.
-    const foodIds = database.getAllRecords(DatabaseModels.Food).map(record => record.id);
-    const recipesSample = JSON.parse(JSON.stringify(RecipesSample));
-    recipesSample.map(recipe => recipe.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
-        ingredient.food_id = foodIds[ingredient.food_id]
-    })));
-    database.addModel(Recipe, DatabaseModels.Recipe, recipesSample, RecipeRecord);
-
     let server;
     before(() => {
         server = require('../www');
@@ -72,6 +46,7 @@ describe('/recipes', () => {
     });
 
     describe('POST', () => {
+        const initial_timestamp = Date.now();
         let recipe;
 
         /**
@@ -510,8 +485,6 @@ describe('/recipes', () => {
     });
 
     describe.only('/:id', () => {
-
-
         describe('GET', () => {
             describe('specified id is invalid', () => {
                 beforeEach(() => {
@@ -527,8 +500,8 @@ describe('/recipes', () => {
                 let recipeRecord, foodRecords;
 
                 before(() => {
-                    recipeRecord = database.getAllRecords(DatabaseModels.Recipe)[0];
-                    foodRecords = database.getAllRecords(DatabaseModels.Food);
+                    recipeRecord = database.getAllRecords(DBStructure.models.Recipe)[0];
+                    foodRecords = database.getAllRecords(DBStructure.models.Food);
                 });
 
                 beforeEach(() => {
@@ -556,8 +529,8 @@ describe('/recipes', () => {
         });
 
         describe('PUT', () => {
-            const recipe = database.getAllRecords(DatabaseModels.Recipe)[0];
-            const validFoodId = database.getAllRecords(DatabaseModels.Food)[0].id;
+            const recipe = database.getAllRecords(DBStructure.models.Recipe)[0];
+            const validFoodId = database.getAllRecords(DBStructure.models.Food)[0].id;
 
             let update;
 
@@ -601,7 +574,7 @@ describe('/recipes', () => {
 
                     it('should update the database appropriately', () =>
                         send
-                            .then(() => database.getRecord(DatabaseModels.Recipe, recipe.id))
+                            .then(() => database.getRecord(DBStructure.models.Recipe, recipe.id))
                             .then(updated => {
                                 updated.last_updated.should.not.be.undefined;
                                 should.equal(typeof updated.last_updated, 'number');
