@@ -23,6 +23,12 @@ describe('/recipes', () => {
         Recipe: 'RECIPE'
     };
 
+    class FoodRecord extends MockRecord {
+        get exportable() {
+            return this;
+        }
+    }
+
     class RecipeRecord extends MockRecord {
         constructor(updateRecordFn, removeRecordFn) {
             super(updateRecordFn, removeRecordFn);
@@ -33,10 +39,14 @@ describe('/recipes', () => {
             super.save();
             this.last_updated = Date.now();
         }
+
+        get exportable() {
+            return this;
+        }
     }
 
     const database = new MockDatabase();
-    database.addModel(Food, DatabaseModels.Food, FoodSample);
+    database.addModel(Food, DatabaseModels.Food, FoodSample, FoodRecord);
     // the sample recipes have Food ID indices instead of Food IDs. Substitute them.
     const foodIds = database.getAllRecords(DatabaseModels.Food).map(record => record.id);
     const recipesSample = JSON.parse(JSON.stringify(RecipesSample));
@@ -514,11 +524,15 @@ describe('/recipes', () => {
             });
 
             describe('the specified id is valid', () => {
-                let record;
+                let recipeRecord, foodRecords;
+
+                before(() => {
+                    recipeRecord = database.getAllRecords(DatabaseModels.Recipe)[0];
+                    foodRecords = database.getAllRecords(DatabaseModels.Food);
+                });
 
                 beforeEach(() => {
-                    record = recipeRecords[0];
-                    endpoint = `${endpoint}/${record.id}`
+                    endpoint = `${endpoint}/${recipeRecord.id}`;
                 });
 
                 it('should return an OK response', () =>
@@ -527,7 +541,7 @@ describe('/recipes', () => {
 
                 it('should return the recipe record', () =>
                     request.get(endpoint)
-                        .then(res => res.body.data.recipe.should.deep.equal(record))
+                        .then(res => res.body.data.recipe.should.deep.equal(recipeRecord))
                 );
 
                 it('should return the food items required by the recipe', () =>
@@ -541,7 +555,7 @@ describe('/recipes', () => {
             });
         });
 
-        describe.only('PUT', () => {
+        describe('PUT', () => {
             const recipe = database.getAllRecords(DatabaseModels.Recipe)[0];
             const validFoodId = database.getAllRecords(DatabaseModels.Food)[0].id;
 
