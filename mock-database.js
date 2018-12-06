@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
  * A class to mock a small set of calls to Mongoose models and easily resets to a known state
  * The supported model functions are:
  *   - findOne({_id: <specified by user> })
+ *   - create(record)
  * The supported record functions are:
  *   - save()
  *   - remove()
@@ -22,7 +23,7 @@ class Database {
     /**
      * Create a callback that can be passed to a Record constructor, so that the 'save' method updates the databases local state.
      * @param dbModel the Mongoose model to associate with the record
-     * @returns a function that adds the record to the model's 'updated' property ( or replaces the existing value at that id )
+     * @returns {function(*)} a function that adds the record to the model's 'updated' property ( or replaces the existing value at that id )
      */
     static getRecordUpdateFn(dbModel) {
         return (record) => {
@@ -36,12 +37,25 @@ class Database {
     /**
      * Create a callback that can be passed to a Record constructor, so that the 'remove' method updates the databases local state.
      * @param dbModel the Mongoose model to associate with the record
-     * @returns a function that adds the record to the model's 'removed' property ( or replaces the existing value at that id )
+     * @returns {function(*)} a function that adds the record to the model's 'removed' property ( or replaces the existing value at that id )
      */
     static getRemoveFn(dbModel) {
         return (record) => {
             dbModel.removed[record.id] = record;
         }
+    }
+
+    /**
+     * Produces a new database record
+     * @param dbModel the record model
+     * @param data the data in the record
+     */
+    static newRecord(dbModel, data) {
+        return Object.assign(
+            new dbModel.recordType(Database.getRecordUpdateFn(dbModel), Database.getRemoveFn(dbModel)),
+            {id: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString()},
+            deepClone(data)
+        );
     }
 
     /**
@@ -54,14 +68,13 @@ class Database {
      * @param recordType (default Record) a class to simulate the behaviour of a Mongoose record associated with this models
      */
     addModel(mongooseModel, name, records, recordType = Record) {
-        const dbModel = {records: {}, updated: {}, removed: {}, mongoose: mongooseModel};
-        records.map((item, idx) => {
-            const record = Object.assign(
-                new recordType(Database.getRecordUpdateFn(dbModel), Database.getRemoveFn(dbModel)),
-                {id: `MOCK_${name}_${idx}_ID`},
-                deepClone(item)
-            );
-            dbModel.records[record.id] = record
+        const dbModel = {
+            name: name, records: {}, updated: {}, removed: {},
+            mongoose: mongooseModel, recordType: recordType
+        };
+        records.map(item => {
+            const record = Database.newRecord(dbModel, item);
+            dbModel.records[record.id] = record;
         });
         deepFreeze(dbModel.records);
         this.data[name] = dbModel;
@@ -137,6 +150,11 @@ class Database {
                 model.updated = {};
                 model.removed = {};
                 sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id, true));
+                sinon.stub(model.mongoose, 'create').callsFake(param => {
+                    const record = Database.newRecord(model, param);
+                    model.updated[record.id] = record;
+                    return this.getRecord(modelName, record.id, true);
+                });
             });
     }
 }
