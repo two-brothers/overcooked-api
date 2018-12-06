@@ -17,6 +17,7 @@ class Database {
      */
     constructor() {
         this.data = {};
+        sinon.restore();
         sinon.stub(mongoose, 'connect').returns(Promise.resolve(true));
     }
 

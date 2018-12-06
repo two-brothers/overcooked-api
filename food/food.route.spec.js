@@ -4,58 +4,41 @@ process.env.NODE_ENV = 'test';
 
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const mongoose = require('mongoose');
-const mockgoose = require('mockgoose');
-mongoose.Promise = global.Promise;
 
+const MockDatabase = require('../mock-database').db;
+const DBStructure = require('./food.route.mock-db.spec');
+const Enumerator = require('../bdd-enumerator/module');
 const Food = require('./food.model');
-const UnitTypes = require('./unit_types');
+const MaxUnitType = require('./unit_types').length - 1;
 const FoodSample = require('./food.sample');
-const DBNAME = 'TESTINGDB';
+
 const should = chai.should();
 chai.use(chaiHttp);
 
-let server;
+const database = new MockDatabase();
+database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
+const foodRecords = database.getAllRecords(DBStructure.models.Food);
 
-const maxUnitType = UnitTypes.length - 1;
+describe.only('/food', () => {
+    let server;
+    before(() => {
+        server = require('../www');
+    });
 
-describe('/food', () => {
     let endpoint;
     let request;
-    let sample;
-    let data;
-
-    // launch the server and database connection
-    before(done => {
-        mockgoose(mongoose)
-            .then(() => {
-                server = require('../www');
-                if (mongoose.connection.readyState === 0) {
-                    return mongoose.connect(DBNAME);
-                }
-            })
-            .then(done)
-            .catch(done)
-    });
-    // close the server and database connection
-    after(done => {
-        server.close();
-        mongoose.connection.close()
-            .then(done)
-            .catch(done)
-    });
 
     beforeEach(() => {
         endpoint = '/food';
         request = chai.request(server);
-        // create a clone of the sample data
-        sample = JSON.parse(JSON.stringify(FoodSample));
+        database.reset();
     });
 
+    const optional = Enumerator.scenario.presence.optional;
+    const required = Enumerator.scenario.presence.required;
 
     describe('POST', () => {
-
-        let food;
+        let data;
 
         /**
          * Sends the value of 'data' to the listener at 'endpoint' and confirms that
@@ -90,278 +73,42 @@ describe('/food', () => {
                     })
             );
 
-        /**
-         * Uses the 'setter' function to set the value of a property in 'data' to confirm that:
-         *   - 'expectBadPostRequest' is successful when the property is not a non-empty string
-         *   - 'expectNewFoodResponse' is successful when the property is a non-empty string
-         */
-        const nonEmptyStringTests = (setter) => {
-            describe('is a number', () => {
-                beforeEach(() => setter(0));
-                expectBadPostRequest();
-            });
-
-            describe('is an empty string', () => {
-                beforeEach(() => setter(''));
-                expectBadPostRequest();
-            });
-
-            describe('is a non-empty string', () => {
-                beforeEach(() => setter('Arbitrary string'));
-                expectNewFoodResponse();
-            });
-        };
-
+        // base the new food on an existing one
+        const food = foodRecords[0];
         beforeEach(() => {
-            food = sample[0];
-            data = food;
+            data = Object.assign({}, food);
+            delete data.id;
         });
 
-        describe('the food name', () => {
-            describe('is not defined', () => {
-                beforeEach(() => {
-                    delete food.name
-                });
+        // the property under test is added directly to the data object
+        const baseObjFn = () => data;
 
-                expectBadPostRequest();
-            });
+        const name = Enumerator.scenario.property('name', baseObjFn,
+            required(Enumerator.scenario.object([
+                new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
+                new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
+            ]))
+        );
+        Enumerator.enumerate(name, expectNewFoodResponse, expectBadPostRequest);
 
+        // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
+        // so I will remove it.
+        const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
+            .filter(scenario => scenario.dependents.length < 2);
 
-            describe('singular property', () => {
-                describe('is not defined', () => {
-                    beforeEach(() => {
-                        delete food.name.singular;
-                    });
-
-                    expectBadPostRequest();
-                });
-
-                nonEmptyStringTests((val) => {
-                    food.name.singular = val;
-                });
-            });
-
-            describe('plural property', () => {
-                describe('is not defined', () => {
-                    beforeEach(() => {
-                        delete food.name.plural;
-                    });
-
-                    expectBadPostRequest();
-                });
-
-                nonEmptyStringTests((val) => {
-                    food.name.plural = val;
-                });
-            });
-        });
-
-        describe('the food conversions property', () => {
-            describe('is not defined', () => {
-                beforeEach(() => {
-                    delete food.conversions;
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is a string', () => {
-                beforeEach(() => {
-                    food.conversions = 'Arbitrary string';
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is an empty array', () => {
-                beforeEach(() => {
-                    food.conversions = [];
-                });
-
-                expectBadPostRequest();
-            });
-
-            describe('is an array where', () => {
-                let element;
-
-                /**
-                 * Manipulates the conversion item 'element' and ensures the appropriate response is
-                 * returned from the endpoint
-                 */
-                const conversionTests = () => {
-                    describe('unit_id', () => {
-                        describe('is not defined', () => {
-                            beforeEach(() => {
-                                delete element.unit_id;
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is a string', () => {
-                            beforeEach(() => {
-                                element.unit_id = 'Arbitrary string';
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is not an integer', () => {
-                            beforeEach(() => {
-                                element.unit_id = 2.3;
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is negative', () => {
-                            beforeEach(() => {
-                                element.unit_id = -1;
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is zero', () => {
-                            beforeEach(() => {
-                                element.unit_id = 0;
-                            });
-
-                            expectNewFoodResponse();
-                        });
-
-                        describe('is in the middle of the expected range', () => {
-                            beforeEach(() => {
-                                element.unit_id = Math.floor(maxUnitType / 2);
-                                element.unit_id.should.be.greaterThan(0);
-                                element.unit_id.should.be.lessThan(maxUnitType);
-                            });
-
-                            expectNewFoodResponse();
-                        });
-
-
-                        describe('is the maximum allowed value', () => {
-                            beforeEach(() => {
-                                element.unit_id = maxUnitType;
-                            });
-
-                            expectNewFoodResponse();
-                        });
-
-                        describe('is more than the maximum allowed value', () => {
-                            beforeEach(() => {
-                                element.unit_id = maxUnitType + 1;
-                            });
-
-                            expectBadPostRequest();
-                        });
-                    });
-
-                    describe('ratio', () => {
-                        describe('is not defined', () => {
-                            beforeEach(() => {
-                                delete element.ratio;
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is a string', () => {
-                            beforeEach(() => {
-                                element.ratio = 'Arbitrary string';
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is negative', () => {
-                            beforeEach(() => {
-                                element.ratio = -1;
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is zero', () => {
-                            beforeEach(() => {
-                                element.ratio = 0;
-                            });
-
-                            expectBadPostRequest();
-                        });
-
-                        describe('is 1', () => {
-                            beforeEach(() => {
-                                element.ratio = 1;
-                            });
-
-                            expectNewFoodResponse();
-                        });
-
-                        describe('is another positive integer', () => {
-                            beforeEach(() => {
-                                element.ratio = 2;
-                            });
-
-                            expectNewFoodResponse();
-                        });
-
-                        describe('is a positive fraction', () => {
-                            beforeEach(() => {
-                                element.ratio = 0.35;
-                            });
-
-                            expectNewFoodResponse();
-                        });
-                    });
-                };
-
-                describe('the first element', () => {
-                    beforeEach(() => {
-                        element = food.conversions[0];
-                    });
-
-                    conversionTests();
-                });
-
-                describe('the last element', () => {
-                    beforeEach(() => {
-                        // some arbitrary valid value
-                        element = {
-                            unit_id: Math.floor(maxUnitType / 2),
-                            ratio: 0.3
-                        };
-
-                        food.conversions.push(element);
-                    });
-
-                    conversionTests();
-                });
-            });
-        });
+        const conversions = Enumerator.scenario.property('conversions', baseObjFn,
+            required(modifiedNonEmptyArray(
+                Enumerator.scenario.object([
+                    new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
+                    new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
+                ])
+            ))
+        );
+        Enumerator.enumerate(conversions, expectNewFoodResponse, expectBadPostRequest);
     });
 
     describe('/:id', () => {
-        let foodRecords;
-
-        beforeEach(() =>
-            Promise.all(
-                FoodSample.map(sample =>
-                    Food.create(sample)
-                        .then(record => record.exportable)
-                        // remove the Mongoose specific types
-                        .then(record => JSON.parse(JSON.stringify(record)))
-                )
-            )
-                .then(records => {
-                    foodRecords = records;
-                })
-        );
-
-        afterEach(done => mockgoose.reset(done));
-
-        const unknownRecordTests = () => {
+        describe('GET', () => {
             describe('specified id is invalid', () => {
                 beforeEach(() => {
                     endpoint = `${endpoint}/invalid_id`;
@@ -371,14 +118,9 @@ describe('/food', () => {
                     request.get(endpoint).then(res => res.status.should.equal(404))
                 );
             });
-        };
-
-        describe('GET', () => {
-            unknownRecordTests();
 
             describe('the specified id is valid', () => {
-
-                it('should return the corresponding record', () =>
+                it('should return an OK response with the corresponding record', () =>
                     Promise.all(foodRecords.map(record =>
                         request.get(`${endpoint}/${record.id}`)
                             .then(res => {
@@ -392,272 +134,194 @@ describe('/food', () => {
         });
 
         describe('PUT', () => {
-            let record;
+            const food = foodRecords[0];
+
             let update;
-
             beforeEach(() => {
-                record = foodRecords[0];
-                update = {name: {}};
+                update = {};
             });
 
-            const stringOptions = (propName, propSetter) => [
-                {desc: `${propName} is undefined`, set: () => null, valid: false},
-                {desc: `${propName} is a number`, set: () => propSetter(1), valid: false},
-                {desc: `${propName} is an empty string`, set: () => propSetter(''), valid: false},
-                {desc: `${propName} is a non empty string`, set: () => propSetter('Arbitrary string'), valid: true}
-            ];
-
-            const singularSetter = (val) => {
-                update.name.singular = val;
-            };
-            const pluralSetter = (val) => {
-                update.name.plural = val;
-            };
-
-            // cross product all options for both properties
-            const nameOptions = stringOptions('name.singular', singularSetter).map(singularOption =>
-                stringOptions('name.plural', pluralSetter).map(pluralOption => ({
-                    desc: `${singularOption.desc}; ${pluralOption.desc}`,
-                    set: () => {
-                        singularOption.set();
-                        pluralOption.set();
-                    },
-                    valid: singularOption.valid && pluralOption.valid
-                }))
-            ).reduce((a, b) => a.concat(b));
-            // add the case where name is undefined
-            nameOptions.unshift({
-                desc: `name is undefined`,
-                set: () => {
-                    delete update.name
-                },
-                valid: true
-            });
-
-            nameOptions.map(nameOption => {
-                describe(nameOption.desc, () => {
-                    let conversion;
+            const unknownRecordTest = () => {
+                describe('specified id is invalid', () => {
                     beforeEach(() => {
-                        nameOption.set();
-                        conversion = {};
+                        endpoint = `${endpoint}/invalid_id`;
                     });
 
-                    const unitIDSetter = (val) => {
-                        conversion.unit_id = val;
-                    };
-                    const unitIDOptions = () => [
-                        {desc: 'unit_id is undefined', set: () => null, valid: false},
-                        {desc: 'unit_id is negative', set: () => unitIDSetter(-1), valid: false},
-                        {desc: 'unit_id is 0', set: () => unitIDSetter(0), valid: true},
-                        {
-                            desc: 'unit_id is in the middle of the expected range',
-                            set: () => unitIDSetter(Math.floor(maxUnitType / 2)),
-                            valid: true
-                        },
-                        {desc: 'unit_id is the maximum value', set: () => unitIDSetter(maxUnitType), valid: true},
-                        {
-                            desc: 'unit_id exceeds the maximum value',
-                            set: () => unitIDSetter(maxUnitType + 1),
-                            valid: false
-                        }
-                    ];
-
-                    const ratioSetter = (val) => {
-                        conversion.ratio = val;
-                    };
-                    const ratioOptions = () => [
-                        {desc: 'ratio is undefined', set: () => null, valid: false},
-                        {desc: 'ratio is negative', set: () => ratioSetter(-1), valid: false},
-                        {desc: 'ratio is zero', set: () => ratioSetter(0), valid: false},
-                        {desc: 'ratio is 1', set: () => ratioSetter(1), valid: true},
-                        {desc: 'ratio is a positive fraction', set: () => ratioSetter(0.421), valid: true}
-                    ];
-
-                    // cross all possible unit ids with ratios to get the conversion object under test
-                    const singleConversionOptions = () =>
-                        unitIDOptions().map(unitIDOption =>
-                            ratioOptions().map(ratioOption => ({
-                                desc: `${unitIDOption.desc} and ${ratioOption.desc}`,
-                                set: () => {
-                                    unitIDOption.set();
-                                    ratioOption.set();
-                                },
-                                valid: unitIDOption.valid && ratioOption.valid
-                            }))
-                        ).reduce((a, b) => a.concat(b));
-
-
-                    const validConversion = {
-                        unit_id: 1,
-                        ratio: 1.5
-                    };
-                    const conversionsSetter = (val) => {
-                        update.conversions = val
-                    };
-                    const conversionsOptions = () => [
-                        {desc: 'conversions is undefined', set: () => null, valid: true},
-                        {
-                            desc: 'conversions is a string',
-                            set: () => conversionsSetter('Arbitrary string'),
-                            valid: false
-                        },
-                        {desc: 'conversions is an empty array', set: () => conversionsSetter([]), valid: false}
-                    ].concat(singleConversionOptions().map(singleConversionOption => ({ // add the cases with one object
-                        desc: `conversions array has one element where ${singleConversionOption.desc}`,
-                        set: () => {
-                            singleConversionOption.set();
-                            conversionsSetter([conversion])
-                        },
-                        valid: singleConversionOption.valid
-                    }))).concat(singleConversionOptions().map(singleConversionOption => ({ // add the cases with two objects
-                        desc: `conversions array has a second element where ${singleConversionOption.desc}`,
-                        set: () => {
-                            singleConversionOption.set();
-                            conversionsSetter([validConversion, conversion])
-                        },
-                        valid: singleConversionOption.valid
-                    })));
-
-                    conversionsOptions().map(conversionsOption => {
-                        describe(conversionsOption.desc, () => {
-                            beforeEach(conversionsOption.set);
-
-                            const valid = nameOption.valid && conversionsOption.valid;
-
-                            if (valid) {
-                                unknownRecordTests();
-
-                                describe('the specified id is valid', () => {
-                                    let expected;
-                                    let send;
-
-                                    beforeEach(() => {
-                                        endpoint = `${endpoint}/${record.id}`;
-                                        expected = Object.assign({}, record, update);
-                                        send = request.put(endpoint).send(update);
-                                    });
-
-                                    it('should return a NoContent response', () =>
-                                        send.then(res => res.status.should.equal(204))
-                                    );
-
-                                    it('should update the database appropriately', () =>
-                                        send.then(() => Food.findOne({_id: record.id}))
-                                            .then(updated => updated.exportable)
-                                            // remove the Mongoose specific types
-                                            .then(updated => JSON.parse(JSON.stringify(updated)))
-                                            .then(updated => updated.should.deep.equal(expected))
-                                    );
-                                });
-                            } else {
-                                it('should return a Bad Request error', () =>
-                                    request.put(`${endpoint}/${record.id}`)
-                                        .send(update)
-                                        .then(res => res.status.should.equal(400))
-                                );
-                            }
-
-                        });
-                    });
+                    it('should return a NotFound error', () =>
+                        request.put(endpoint).then(res => res.status.should.equal(404))
+                    );
                 });
-            });
+            };
+
+            const validFoodTests = () => {
+                unknownRecordTest();
+
+                describe('the specified id is valid', () => {
+                    let expected;
+                    let send;
+
+                    beforeEach(() => {
+                        endpoint = `${endpoint}/${food.id}`;
+                        expected = Object.assign({}, food, update);
+                        send = request.put(endpoint).send(update);
+                    });
+
+                    it('should return a NoContent response', () =>
+                        send.then(res => res.status.should.equal(204))
+                    );
+
+                    it('should update the database appropriately', () =>
+                        send
+                            .then(() => database.getRecord(DBStructure.models.Food, food.id))
+                            .then(updated => {
+                                updated.should.deep.equal(expected);
+                            })
+                    );
+                });
+            };
+
+            const expectBadPutRequest = () => {
+                it('should return a Bad Request error', () =>
+                    request.put(`${endpoint}/${food.id}`)
+                        .send(update)
+                        .then(res => res.status.should.equal(400))
+                );
+            };
+
+            const baseObjFn = () => update; // properties are added directly to the update object
+
+            const name = Enumerator.scenario.property('name', baseObjFn,
+                optional(Enumerator.scenario.object([
+                    new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
+                    new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
+                ]))
+            );
+            Enumerator.enumerate(name, validFoodTests, expectBadPutRequest);
+
+            // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
+            // so I will remove it.
+            const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
+                .filter(scenario => scenario.dependents.length < 2);
+
+            const conversions = Enumerator.scenario.property('conversions', baseObjFn,
+                optional(modifiedNonEmptyArray(
+                    Enumerator.scenario.object([
+                        new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
+                        new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
+                    ])
+                ))
+            );
+            Enumerator.enumerate(conversions, validFoodTests, expectBadPutRequest);
 
         });
 
         describe('DELETE', () => {
-            unknownRecordTests();
+            describe('specified id is invalid', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/invalid_id`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.delete(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
 
             describe('the specified id is valid', () => {
-                let record;
+                const food = foodRecords[0];
+                const RecordNotFound = new Error('Record not found before deletion');
+                const RecordFound = new Error('Record found after deletion');
+
                 beforeEach(() => {
-                    record = foodRecords[0];
-                    endpoint = `${endpoint}/${record.id}`;
+                    endpoint = `${endpoint}/${food.id}`;
                 });
 
                 it('should return a NoContent response', () =>
                     request.delete(endpoint).then(res => res.status.should.equal(204))
                 );
 
-                it('should delete the corresponding record', () =>
-                    Food.findOne({_id: record.id})
-                        .then(found => found.should.not.equal(null))
+                it('should delete the corresponding food item', () =>
+                    database.getRecord(DBStructure.models.Food, food.id)
+                        .catch(() => Promise.reject(RecordNotFound))
                         .then(() => request.delete(endpoint))
-                        .then(() => Food.findOne({_id: record.id}))
-                        .then(found => should.equal(found, null))
+                        .then(() => database.getRecord(DBStructure.models.Food, food.id))
+                        .then(() => Promise.reject(RecordFound))
+                        .catch(err => [RecordNotFound, RecordFound].includes(err) ?
+                            Promise.reject(err) :
+                            null
+                        )
                 );
+            });
+        });
+    });
 
+    xdescribe('/at/:page', () => {
+        const ITEMS_PER_PAGE = 20;
+        const expectBadGetRequest = () => {
+            it('should return a "Bad Request" error', () =>
+                request.get(endpoint).then(res => res.status.should.equal(400))
+            )
+        };
+
+        beforeEach(() => {
+            endpoint = `${endpoint}/at`;
+        });
+
+        describe('"page" is a string', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/arbitrary_string`;
+            });
+            expectBadGetRequest();
+        });
+
+        describe('"page" is negative', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/-1`;
+            });
+            expectBadGetRequest();
+        });
+
+        describe('"page" is a fraction', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/3.4`;
+            });
+            expectBadGetRequest();
+        });
+
+        // since we don't know the order of records in the db, it's easier to test all pages at once
+        describe('all valid page requests', () => {
+            it('should collectively return all food items exactly once', () => {
+                const numPages = Math.ceil(foodRecords.length / ITEMS_PER_PAGE);
+                const remainder = foodRecords.length % ITEMS_PER_PAGE;
+                const range = Array(numPages).fill(null).map((_, idx) => idx);
+
+                // precondition for this test
+                remainder.should.be.greaterThan(0);
+
+                return Promise.all(range.map(page =>
+                    request.get(`${endpoint}/${page}`)
+                        .then(res => {
+                            res.status.should.equal(200);
+                            res.body.data.last_page.should.equal(page === numPages - 1);
+                            res.body.data.food.length.should.equal(page === numPages - 1 ? remainder : ITEMS_PER_PAGE);
+                            return res.body.data.food;
+                        })
+                ))
+                    .then(pages => pages.reduce((a, b) => a.concat(b)))
+                    .then(returned => {
+                        const compareFood = (a, b) => (a.id < b.id ? -1 : 1);
+                        returned.sort(compareFood).should.deep.equal(foodRecords.sort(compareFood))
+                    })
             });
         });
 
-        describe('/at/:page', () => {
-            const ITEMS_PER_PAGE = 20;
-            const expectBadRequestError = () => {
-                it('should return a "Bad Request" error', () =>
-                    request.get(endpoint).then(res => res.status.should.equal(400))
-                )
-            };
-
+        describe('page is too high', () => {
             beforeEach(() => {
-                endpoint = `${endpoint}/at`;
+                endpoint = `${endpoint}/${Math.ceil(foodRecords.length / ITEMS_PER_PAGE) + 1}`
             });
 
-            describe('"page" is a string', () => {
-                beforeEach(() => {
-                    endpoint = `${endpoint}/arbitrary_string`;
-                });
-                expectBadRequestError();
-            });
-
-            describe('"page" is negative', () => {
-                beforeEach(() => {
-                    endpoint = `${endpoint}/-1`;
-                });
-                expectBadRequestError();
-            });
-
-            describe('"page" is a fraction', () => {
-                beforeEach(() => {
-                    endpoint = `${endpoint}/3.4`;
-                });
-                expectBadRequestError();
-            });
-
-            // since we don't know the order of records in the db, it's easier to test all pages at once
-            describe('all valid page requests', () => {
-                it('should collectively return all food items exactly once', () => {
-                    const numPages = Math.ceil(foodRecords.length / ITEMS_PER_PAGE);
-                    const remainder = foodRecords.length % ITEMS_PER_PAGE;
-                    const range = Array(numPages).fill(null).map((_, idx) => idx);
-
-                    // precondition for this test
-                    remainder.should.be.greaterThan(0);
-
-                    return Promise.all(range.map(page =>
-                        request.get(`${endpoint}/${page}`)
-                            .then(res => {
-                                res.status.should.equal(200);
-                                res.body.data.last_page.should.equal(page === numPages - 1);
-                                res.body.data.food.length.should.equal(page === numPages - 1 ? remainder : ITEMS_PER_PAGE);
-                                return res.body.data.food;
-                            })
-                    ))
-                        .then(pages => pages.reduce((a, b) => a.concat(b)))
-                        .then(returned => {
-                            const compareFood = (a, b) => (a.id < b.id ? -1 : 1);
-                            returned.sort(compareFood).should.deep.equal(foodRecords.sort(compareFood))
-                        })
-                });
-            });
-
-            describe('page is too high', () => {
-                beforeEach(() => {
-                    endpoint = `${endpoint}/${Math.ceil(foodRecords.length / ITEMS_PER_PAGE) + 1}`
-                });
-
-                it('should return a "Not Found" error', () =>
-                    request.get(endpoint).then(res => res.status.should.equal(404))
-                )
-            });
+            it('should return a "Not Found" error', () =>
+                request.get(endpoint).then(res => res.status.should.equal(404))
+            )
         });
     });
 });

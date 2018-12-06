@@ -38,7 +38,7 @@ const foodID = [
     new Enumerator.custom.simple('is a valid id', validFoodId, true)
 ];
 
-describe.only('/recipes', () => {
+describe('/recipes', () => {
     let server;
     before(() => {
         server = require('../www');
