@@ -15,7 +15,7 @@ const VLD = require('../request-validator');
  */
 router.use((req, res, next) => {
     res.wrap = (response) => res.json(wrapper.wrap(response));
-    next();
+    return next();
 });
 
 /*** URI: /recipes ***/
@@ -222,7 +222,7 @@ router.get('/at/:page', (req, res, next) => {
     const page = Number(req.params.page);
     const error = VLD.required(page, VLD.isBoundedInt(0, Infinity), 'The page parameter must be a non-negative integer');
     if (error)
-        next({status: 400, message: error});
+        return next({status: 400, message: error});
 
     Recipe.find()
         .sort({updatedAt: -1})
