@@ -217,6 +217,7 @@ router.delete('/:id', (req, res, next) => {
 /*** URI: /recipes/at/:page ***/
 
 router.get('/at/:page', (req, res, next) => {
+    const RecordsNotFound = new Error('Records Not Found');
     const ITEMS_PER_PAGE = 10;
 
     const page = Number(req.params.page);
@@ -228,7 +229,7 @@ router.get('/at/:page', (req, res, next) => {
         .sort({updatedAt: -1})
         .limit(ITEMS_PER_PAGE + 1) // get an extra record to see if there is at least another page
         .skip(page * ITEMS_PER_PAGE)
-        .then(recipes => recipes.length === 0 ? next() : recipes) // let the 404 handler catch it
+        .then(recipes => recipes.length === 0 ? Promise.reject(RecordsNotFound) : recipes)
         .then(recipes => recipes.map(recipe => recipe.exportable))
         .then(recipes => {
             const food_ids =
@@ -249,7 +250,10 @@ router.get('/at/:page', (req, res, next) => {
                     food: foods
                 }))
         })
-        .catch(err => next({status: 500, message: 'Server Error: Unable to retrieve the recipes'}));
+        .catch(err => err === RecordsNotFound ?
+            next() : // let the 404 handler catch it
+            next({status: 500, message: 'Server Error: Unable to retrieve the specified recipes'})
+        );
 });
 
 module.exports = router;

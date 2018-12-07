@@ -130,7 +130,7 @@ router.get('/at/:page', (req, res, next) => {
         .sort({id: 1})
         .limit(ITEMS_PER_PAGE + 1) // get an extra record to see if there is at least another page,
         .skip(page * ITEMS_PER_PAGE)
-        .then(records => records.length === 0 ? Promise.reject(RecordsNotFound) : records) // let the 404 handler catch it
+        .then(records => records.length === 0 ? Promise.reject(RecordsNotFound) : records)
         .then(records => records.map(record => record.exportable))
         .then(records => res.wrap({
             food: records.slice(0, ITEMS_PER_PAGE),
