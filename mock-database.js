@@ -176,7 +176,7 @@ class Database {
                     return this.getRecord(modelName, record.id, true);
                 });
                 sinon.stub(model.mongoose, 'find').callsFake(() => {
-                    const records = this.getAllRecords(modelName);
+                    const records = this.getAllRecords(modelName, true);
                     records.sort((a, b) => a.id < b.id);
                     return new MockQuery(records);
                 })
