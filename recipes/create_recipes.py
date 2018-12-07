@@ -34,7 +34,7 @@ def createRecipe(idx):
   return recipe
 
 
-recipes = list(map(lambda idx: createRecipe(idx), range(10)))
+recipes = list(map(lambda idx: createRecipe(idx), range(NUM_RECIPES)))
 
 # write the results to file
 f = open('./recipe.sample.js', 'w')
