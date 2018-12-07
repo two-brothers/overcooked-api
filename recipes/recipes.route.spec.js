@@ -188,7 +188,8 @@ describe('/recipes', () => {
             describe('the specified id is valid', () => {
                 let recipeRecord, foodRecords;
 
-                before(() =>
+                before(() => {
+                    database.reset();
                     database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
                         .then(record => {
                             recipeRecord = record
@@ -197,7 +198,7 @@ describe('/recipes', () => {
                         .then(foods => {
                             foodRecords = foods;
                         })
-                );
+                });
 
                 beforeEach(() => {
                     endpoint = `${endpoint}/${recipeRecord.id}`;
