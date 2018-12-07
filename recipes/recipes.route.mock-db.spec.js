@@ -14,7 +14,9 @@ class FoodRecord extends MockRecord {
 class RecipeRecord extends MockRecord {
     constructor(updateRecordFn, removeRecordFn) {
         super(updateRecordFn, removeRecordFn);
-        this.last_updated = Date.now();
+        // to avoid every record in a batch upload having the same timestamp,
+        // pick a random time within the last 5 seconds
+        this.last_updated = Date.now() - Math.floor(Math.random() * 5000);
     }
 
     save() {
@@ -24,6 +26,10 @@ class RecipeRecord extends MockRecord {
 
     get exportable() {
         return this;
+    }
+
+    get updatedAt() {
+        return this.last_updated;
     }
 }
 

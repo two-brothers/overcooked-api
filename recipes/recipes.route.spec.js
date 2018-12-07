@@ -59,7 +59,6 @@ describe('/recipes', () => {
     ];
 
     describe('POST', () => {
-        const initial_timestamp = Date.now();
         let data;
 
         /**
@@ -93,11 +92,8 @@ describe('/recipes', () => {
                         res.body.data.id.length.should.be.greaterThan(0);
                         delete res.body.data.id;
 
-                        // note that in this test, the client and server share a clock so there
-                        // is no risk of time-drift errors
                         res.body.data.last_updated.should.not.be.undefined;
                         should.equal(typeof res.body.data.last_updated, 'number');
-                        res.body.data.last_updated.should.be.gte(initial_timestamp);
                         res.body.data.last_updated.should.be.lte(Date.now());
                         delete res.body.data.last_updated;
 
@@ -394,6 +390,183 @@ describe('/recipes', () => {
                         null
                     )
             );
+        });
+    });
+
+    describe('/at/:page', () => {
+        const ITEMS_PER_PAGE = 10;
+
+        let numPages, remainder, sortedRecipes, foodRecords;
+        // reverse chronological order
+        const compareTimestamp = (a, b) => (a.last_updated < b.last_updated ? 1 : -1);
+        before(() => {
+            database.reset();
+            const recipePromises = database.getAllRecords(DBStructure.models.Recipe);
+            const foodPromises = database.getAllRecords(DBStructure.models.Food);
+            numPages = Math.ceil(recipePromises.length / ITEMS_PER_PAGE);
+            remainder = recipePromises.length % ITEMS_PER_PAGE;
+            return Promise.all(recipePromises)
+                .then(recipes => {
+                    sortedRecipes = recipes;
+                    sortedRecipes.sort(compareTimestamp);
+                })
+                .then(() => Promise.all(foodPromises))
+                .then(food => {
+                    foodRecords = food;
+                })
+        });
+
+        beforeEach(() => {
+            endpoint = `${endpoint}/at`;
+        });
+
+        const expectBadGetRequest = () => {
+            it('should return a "Bad Request" error', () =>
+                request.get(endpoint).then(res => res.status.should.equal(400))
+            )
+        };
+
+        const expectPageToBeConsistent = () => {
+            it('should return food items associated with the recipes', () =>
+                request.get(endpoint)
+                    .then(res => {
+                        const flatten = (a, b) => a.concat(b);
+                        const foodIds = res.body.data.food.map(food => food.id);
+                        res.body.data.recipes
+                            .map(recipe => recipe.ingredient_sections).reduce(flatten)
+                            .map(section => section.ingredients).reduce(flatten)
+                            .map(ingredient => ingredient.food_id)
+                            .map(id => foodIds.includes(id).should.equal(true))
+                    })
+            );
+
+            it('should not return excessive food items', () => {
+                request.get(endpoint)
+                    .then(res => {
+                        const flatten = (a, b) => a.concat(b);
+                        const requiredFoods = res.body.data.recipes
+                            .map(recipe => recipe.ingredient_sections).reduce(flatten)
+                            .map(section => section.ingredients).reduce(flatten)
+                            .map(ingredient => ingredient.food_id);
+                        res.body.data.food.map(food =>
+                            requiredFoods.includes(food.id).should.equal(true)
+                        )
+                    })
+            });
+
+            it('should not return duplicate food items', () =>
+                request.get(endpoint)
+                    .then(res => res.body.data.food)
+                    .then(items => items.map((food, idx, arr) => arr.indexOf(food).should.equal(idx)))
+            );
+
+            it('should match the food items in the database', () => {
+                request.get(endpoint)
+                    .then(res => res.body.data.food)
+                    .then(items => items.map(food =>
+                        food.should.deep.equal(foodRecords.filter(record => record.id === food.id)[0])
+                    ))
+            });
+        };
+
+
+        describe('"page" is a string', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/arbitrary_string`;
+            });
+            expectBadGetRequest();
+        });
+
+        describe('"page" is negative', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/-1`;
+            });
+            expectBadGetRequest();
+        });
+
+        describe('"page" is a fraction', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/3.4`;
+            });
+            expectBadGetRequest();
+        });
+
+        describe('first page request', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/0`;
+                numPages.should.be.greaterThan(1); // precondition for this test
+            });
+
+            it('should return an OK response with the first page of items sorted by timestamp', () =>
+                request.get(endpoint)
+                    .then(res => {
+                        res.status.should.equal(200);
+                        res.body.data.recipes.length.should.equal(ITEMS_PER_PAGE);
+                        res.body.data.recipes.should.deep.equal(sortedRecipes.slice(0, ITEMS_PER_PAGE));
+                    })
+            );
+
+            it('should not be the last page', () =>
+                request.get(endpoint)
+                    .then(res => res.body.data.last_page.should.equal(false))
+            );
+
+            expectPageToBeConsistent();
+        });
+
+        describe('last page request', () => {
+            beforeEach(() => {
+                endpoint = `${endpoint}/${numPages - 1}`;
+                remainder.should.be.greaterThan(0); // precondition for this test
+            });
+
+            it('should return an OK response with the last page of items sorted by timestamp', () =>
+                request.get(endpoint)
+                    .then(res => {
+                        res.status.should.equal(200);
+                        res.body.data.recipes.length.should.equal(remainder);
+                        res.body.data.recipes.should.deep.equal(sortedRecipes.slice((numPages - 1) * ITEMS_PER_PAGE));
+                    })
+            );
+
+            it('should indicate that it is the last page', () => {
+                request.get(endpoint)
+                    .then(res => res.body.data.last_page.should.equal(true))
+            });
+
+            expectPageToBeConsistent();
+        });
+
+        describe('all valid page requests', () => {
+            let pageIndices;
+            before(() => {
+                pageIndices = new Array(numPages).fill(0).map((_, idx) => idx);
+            });
+
+            it('should collectively return all recipes items sorted by timestamp', () =>
+                Promise.all(pageIndices.map(pageIdx =>
+                    request.get(`${endpoint}/${pageIdx}`)
+                        .then(res => {
+                            res.status.should.equal(200);
+                            res.body.data.last_page.should.equal(pageIdx === numPages - 1);
+                            res.body.data.recipes.length.should.equal(pageIdx === numPages - 1 ? remainder : ITEMS_PER_PAGE);
+                            return res.body.data.recipes;
+                        })
+                ))
+                    .then(pages => pages.reduce((a, b) => a.concat(b)))
+                    .then(returned => returned.should.deep.equal(sortedRecipes))
+            );
+        });
+
+        describe('page is too high', () => {
+            beforeEach(() => {
+                const pageIdx = Math.ceil(database.getAllRecords(DBStructure.models.Recipe).length / ITEMS_PER_PAGE) + 1;
+                endpoint = `${endpoint}/${pageIdx}`
+            });
+
+            it('should return a "Not Found" error', () =>
+                request.get(endpoint).then(res => res.status.should.equal(404))
+            )
         });
     });
 });
