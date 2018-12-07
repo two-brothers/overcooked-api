@@ -232,22 +232,25 @@ router.get('/at/:page', (req, res, next) => {
         .then(recipes => recipes.length === 0 ? Promise.reject(RecordsNotFound) : recipes)
         .then(recipes => recipes.map(recipe => recipe.exportable))
         .then(recipes => {
-            const food_ids =
-                recipes.map(recipe =>
-                    recipe.ingredient_sections
-                        .map(section => section.ingredients)
-                        .reduce((a, b) => a.concat(b))
-                )
-                    .reduce((a, b) => a.concat(b))
-                    .map(ingredient => ingredient.food_id)
-                    .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
+            const last_page = recipes.length <= ITEMS_PER_PAGE;
+            recipes = recipes.slice(0, ITEMS_PER_PAGE);
 
-            Promise.all(food_ids.map(id => Food.findOne({_id: id})
-                .then(food => food.exportable)
-            ))
+            const food_ids = recipes.map(recipe => recipe.ingredient_sections)
+                .reduce((a, b) => a.concat(b))
+                .map(section => section.ingredients)
+                .reduce((a, b) => a.concat(b))
+                .map(ingredient => ingredient.food_id)
+                .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
+
+            Promise.all(
+                food_ids.map(id => Food.findOne({_id: id})
+                    .then(food => food.exportable)
+                )
+            )
                 .then(foods => res.wrap({
                     recipes: recipes,
-                    food: foods
+                    food: foods,
+                    last_page: last_page
                 }))
         })
         .catch(err => err === RecordsNotFound ?
