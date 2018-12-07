@@ -352,5 +352,47 @@ describe('/recipes', () => {
             Enumerator.enumerate(reference, validRecipeTests, invalidRecipeTests);
 
         });
+
+        describe('DELETE', () => {
+            describe('specified id is invalid', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/invalid_id`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.delete(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
+        });
+
+        describe('the specified id is valid', () => {
+            let recipe;
+            const RecordNotFound = new Error('Record not found before deletion');
+            const RecordFound = new Error('Record found after deletion');
+
+            beforeEach(() =>
+                database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                    .then(record => {
+                        recipe = record;
+                        endpoint = `${endpoint}/${recipe.id}`;
+                    })
+            );
+
+            it('should return a NoContent response', () =>
+                request.delete(endpoint).then(res => res.status.should.equal(204))
+            );
+
+            it('should delete the corresponding recipe', () =>
+                database.getRecord(DBStructure.models.Recipe, recipe.id)
+                    .catch(() => Promise.reject(RecordNotFound))
+                    .then(() => request.delete(endpoint))
+                    .then(() => database.getRecord(DBStructure.models.Recipe, recipe.id))
+                    .then(() => Promise.reject(RecordFound))
+                    .catch(err => [RecordNotFound, RecordFound].includes(err) ?
+                        Promise.reject(err) :
+                        null
+                    )
+            );
+        });
     });
 });
