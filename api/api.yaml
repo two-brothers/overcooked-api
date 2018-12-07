@@ -4,7 +4,7 @@ info:
   description: The API for the Overcooked Project
   version: 1.0.0
 
-host: overcooked.nikeshnazareth.com
+host: overcooked.2brothers.tech
 schemes:
   - https
 
