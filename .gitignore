@@ -3,8 +3,6 @@
 
 # These files are created by the initialisation script
 # so they are not part of the repo
-package.json
-package-lock.json
 db.name.js
 
 # npm packages
