@@ -126,7 +126,7 @@ router.put('/:id', (req, res, next) => {
         VLD.optional(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time (if defined) must be a positive number') ||
         VLD.optional(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time (if defined) must be a positive number') ||
         VLD.optional(req.body.ingredient_sections, VLD.isNonEmptyArray, 'Recipe ingredient_sections (if defined) must be a non-empty array') ||
-        ( req.body.ingredient_sections !== undefined ?
+        (req.body.ingredient_sections !== undefined ?
                 req.body.ingredient_sections.reduce((error, section, secIdx) => error || (
                     VLD.optional(section.heading, VLD.isNonEmptyString,
                         `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
@@ -144,7 +144,7 @@ router.put('/:id', (req, res, next) => {
                 null
         ) ||
         VLD.optional(req.body.method, VLD.isNonEmptyArray, 'Recipe method (if defined) must be a non-empty array') ||
-        ( req.body.method !== undefined ?
+        (req.body.method !== undefined ?
                 req.body.method.reduce(
                     (error, step, stepIdx) => error ||
                         VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`),
@@ -217,7 +217,6 @@ router.delete('/:id', (req, res, next) => {
 /*** URI: /recipes/at/:page ***/
 
 router.get('/at/:page', (req, res, next) => {
-    const RecordsNotFound = new Error('Records Not Found');
     const ITEMS_PER_PAGE = 10;
 
     const page = Number(req.params.page);
@@ -229,18 +228,19 @@ router.get('/at/:page', (req, res, next) => {
         .sort({updatedAt: -1})
         .limit(ITEMS_PER_PAGE + 1) // get an extra record to see if there is at least another page
         .skip(page * ITEMS_PER_PAGE)
-        .then(recipes => recipes.length === 0 ? Promise.reject(RecordsNotFound) : recipes)
         .then(recipes => recipes.map(recipe => recipe.exportable))
         .then(recipes => {
             const last_page = recipes.length <= ITEMS_PER_PAGE;
             recipes = recipes.slice(0, ITEMS_PER_PAGE);
 
-            const food_ids = recipes.map(recipe => recipe.ingredient_sections)
-                .reduce((a, b) => a.concat(b))
-                .map(section => section.ingredients)
-                .reduce((a, b) => a.concat(b))
-                .map(ingredient => ingredient.food_id)
-                .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
+            const food_ids = recipes.length === 0 ?
+                [] :
+                recipes.map(recipe => recipe.ingredient_sections)
+                    .reduce((a, b) => a.concat(b))
+                    .map(section => section.ingredients)
+                    .reduce((a, b) => a.concat(b))
+                    .map(ingredient => ingredient.food_id)
+                    .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
 
             Promise.all(
                 food_ids.map(id => Food.findOne({_id: id})
@@ -253,10 +253,7 @@ router.get('/at/:page', (req, res, next) => {
                     last_page: last_page
                 }))
         })
-        .catch(err => err === RecordsNotFound ?
-            next() : // let the 404 handler catch it
-            next({status: 500, message: 'Server Error: Unable to retrieve the specified recipes'})
-        );
+        .catch(() => next({status: 500, message: 'Server Error: Unable to retrieve the specified recipes'}));
 });
 
 module.exports = router;

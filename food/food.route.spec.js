@@ -379,9 +379,17 @@ describe('/food', () => {
                 endpoint = `${endpoint}/${pageIdx}`
             });
 
-            it('should return a "Not Found" error', () =>
-                request.get(endpoint).then(res => res.status.should.equal(404))
-            )
+            it('should return an OK response', () =>
+                request.get(endpoint).then(res => res.status.should.equal(200))
+            );
+
+            it('should return an empty list', () =>
+                request.get(endpoint).then(res => res.body.data.food.should.deep.equal([]))
+            );
+
+            it('should set last_page to true', () =>
+                request.get(endpoint).then(res => res.body.data.last_page.should.equal(true))
+            );
         });
     });
 });

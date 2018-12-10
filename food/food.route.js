@@ -68,13 +68,13 @@ router.put('/:id', (req, res, next) => {
     const RecordNotFound = new Error('Record Not Found');
     const maxUnitType = UnitTypes.length - 1;
 
-    const error = ( req.body.name !== undefined ?
+    const error = (req.body.name !== undefined ?
             VLD.required(req.body.name.singular, VLD.isNonEmptyString, 'Food name.singular must be a string') ||
             VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string') :
             null
         ) ||
         VLD.optional(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions (if defined) must be a non-empty array') ||
-        ( req.body.conversions ?
+        (req.body.conversions ?
                 req.body.conversions.reduce((error, conversion, convIdx) => error || (
                     VLD.required(conversion.unit_id, VLD.isBoundedInt(0, maxUnitType),
                         `Food conversions[${convIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
@@ -117,7 +117,6 @@ router.delete('/:id', (req, res, next) => {
 
 /*** URI: /food/at/:page ***/
 router.get('/at/:page', (req, res, next) => {
-    const RecordsNotFound = new Error('Records Not Found');
     const ITEMS_PER_PAGE = 20;
 
     const page = Number(req.params.page);
@@ -130,16 +129,12 @@ router.get('/at/:page', (req, res, next) => {
         .sort({id: 1})
         .limit(ITEMS_PER_PAGE + 1) // get an extra record to see if there is at least another page,
         .skip(page * ITEMS_PER_PAGE)
-        .then(records => records.length === 0 ? Promise.reject(RecordsNotFound) : records)
         .then(records => records.map(record => record.exportable))
         .then(records => res.wrap({
             food: records.slice(0, ITEMS_PER_PAGE),
             last_page: records.length <= ITEMS_PER_PAGE
         }))
-        .catch(err => err === RecordsNotFound ?
-            next() : // let the 404 handler catch it
-            next({status: 500, message: 'Server Error: Unable to retrieve the specified Food records'})
-        );
+        .catch(() => next({status: 500, message: 'Server Error: Unable to retrieve the specified Food records'}));
 });
 
 module.exports = router;
