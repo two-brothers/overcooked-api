@@ -90,6 +90,7 @@ RecipesByPage:
     description: The recipes are sorted by the date they were last modified (newest first).
       They can be requested in batches of ten, indexed by the page number. The final page has `last_page` set to `true`
       The food items associated with the returned recipes are also included in the response.
+      Requests with page values that are too high return empty lists for both `recipes` and `food`, and set `last_page` to `true`
     parameters:
       name: page
       in: path
@@ -112,8 +113,6 @@ RecipesByPage:
                 $ref: '#/definitions/Food'
             last_page:
               type: boolean
-      404:
-        $ref: '#/recipes/RecipePageDoesNotExistResponse'
       500:
         $ref: '#/errors/UnexpectedServerErrorResponse'
 
@@ -139,8 +138,3 @@ RecipeSuccessfullyUpdatedResponse:
 
 RecipeSuccessfullyDeletedResponse:
   description: The recipe was successfully deleted
-
-RecipePageDoesNotExistResponse:
-  description: The specified recipe page does not exist
-  schema:
-    $ref: '#/errors/Error'

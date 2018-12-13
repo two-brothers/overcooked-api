@@ -79,7 +79,8 @@ FoodRecordsByPage:
       - Food
     summary: Get the set of food records at the given page number
     description: The food records are not sorted in any particular order.
-      They can be requested in batches of twenty, indexed by the page number. The final page has `last_page` set to `true`
+      They can be requested in batches of twenty, indexed by the page number. The final page has `last_page` set to `true`.
+      Requests with page values that are too high return and empty list and set `last_page` to `true`
     parameters:
       - name: page
         in: path
@@ -98,10 +99,8 @@ FoodRecordsByPage:
                 $ref: '#/definitions/Food'
             last_page:
               type: boolean
-      404:
-        $ref: '#/food/FoodPageDoesNotExistResponse'
-      500:
-        $ref: '#/errors/UnexpectedServerErrorResponse'
+        500:
+          $ref: '#/errors/UnexpectedServerErrorResponse'
 
 FoodIDParameter:
   name: id
@@ -125,10 +124,5 @@ FoodSuccessfullyUpdatedResponse:
 
 FoodRecordSuccessfullyDeletedResponse:
   description: The food record was successfully deleted
-
-FoodPageDoesNotExistResponse:
-  description: The specified food page does not exist
-  schema:
-    $ref: '#/errors/Error'
 
 
