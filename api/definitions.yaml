@@ -27,6 +27,8 @@ Recipe:
         $ref: '#/definitions/NonEmptyString'
     reference_url:
       $ref: '#/definitions/NonEmptyString'
+    image_url:
+      $ref: '#/definitions/NonEmptyString'
     last_updated:
       $ref: '#/definitions/Timestamp'
 

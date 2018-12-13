@@ -51,7 +51,8 @@ router.post('/', (req, res, next) => {
         req.body.method.reduce((error, step, stepIdx) => error ||
             VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`),
             null) ||
-        VLD.required(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url must be a non-empty string');
+        VLD.required(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url must be a non-empty string') ||
+        VLD.required(req.body.image_url, VLD.isNonEmptyString, 'Recipe image_url must be a non-empty string');
 
     if (error)
         return next({status: 400, message: error});
@@ -75,7 +76,7 @@ router.post('/', (req, res, next) => {
             return Recipe.create(req.body)
                 .then(record => res.wrap(record.exportable))
         })
-        .catch(err => next({status: 500, message: 'Server Error: Unable to create the Recipe'}));
+        .catch(() => next({status: 500, message: 'Server Error: Unable to create the Recipe'}));
 });
 
 /*** URI /recipes/:id ***/
@@ -152,7 +153,8 @@ router.put('/:id', (req, res, next) => {
                 ) :
                 null
         ) ||
-        VLD.optional(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url (if defined) must be a non-empty string');
+        VLD.optional(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url (if defined) must be a non-empty string') ||
+        VLD.optional(req.body.image_url, VLD.isNonEmptyString, 'Recipe image_url (if defined) must be a non-empty string');
 
     if (error)
         return next({status: 400, message: error});

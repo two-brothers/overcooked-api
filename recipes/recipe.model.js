@@ -64,6 +64,10 @@ const Recipe = new mongoose.Schema({
     reference_url: {
         type: String,
         required: true
+    },
+    image_url: {
+        type: String,
+        required: true
     }
 }, {timestamps: true});
 
@@ -77,6 +81,7 @@ Recipe.virtual('exportable')
             'ingredient_sections': this.ingredient_sections,
             'method': this.method,
             'reference_url': this.reference_url,
+            'image_url': this.image_url,
             'last_updated': this.updatedAt.getTime()
         };
         if (this.serves === undefined) {

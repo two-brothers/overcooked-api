@@ -31,6 +31,7 @@ def createRecipe(idx):
   recipe['ingredient_sections'] = list(map(lambda idx: createSection(idx), range(num_sections)))
   recipe['method'] = ['Do the first thing', 'Then the second', 'The third usually follows']
   recipe['reference_url'] = 'https://example_reference.com'
+  recipe['image_url'] = 'https://example_server.com/example_image.jpg'
   return recipe
 
 

@@ -167,6 +167,11 @@ describe('/recipes', () => {
             required(Enumerator.scenario.nonEmptyString)
         );
         Enumerator.enumerate(reference, expectNewRecipeResponse, expectBadPostRequest);
+
+        const image = Enumerator.scenario.property('image_url', baseObjFn,
+            required(Enumerator.scenario.nonEmptyString)
+        );
+        Enumerator.enumerate(image, expectNewRecipeResponse, expectBadPostRequest);
     });
 
     describe('/:id', () => {
@@ -347,6 +352,11 @@ describe('/recipes', () => {
                 optional(Enumerator.scenario.nonEmptyString)
             );
             Enumerator.enumerate(reference, validRecipeTests, invalidRecipeTests);
+
+            const image = Enumerator.scenario.property('image_url', baseObjFn,
+                optional(Enumerator.scenario.nonEmptyString)
+            );
+            Enumerator.enumerate(image, validRecipeTests, invalidRecipeTests);
 
         });
 
