@@ -54,8 +54,9 @@ router.post('/', (req, res, next) => {
         VLD.required(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url must be a non-empty string') ||
         VLD.required(req.body.image_url, VLD.isNonEmptyString, 'Recipe image_url must be a non-empty string');
 
-    if (error)
+    if (error) {
         return next({status: 400, message: error});
+    }
 
     Promise.all(
         // find any invalid ids
@@ -64,7 +65,7 @@ router.post('/', (req, res, next) => {
             .map(ingredient => ingredient.food_id)
             .filter((food, idx, arr) => arr.indexOf(food) === idx)
             .map(id => Food.findOne({_id: id})
-                .then(() => null)
+                .then(record => record ? null : id)
                 .catch(() => id)
             )
     )
@@ -89,6 +90,7 @@ router.get('/:id', (req, res, next) => {
 
     Recipe.findOne({_id: req.params.id})
         .catch(() => Promise.reject(RecordNotFound))
+        .then(record => record ? record : Promise.reject(RecordNotFound))
         .then(recipe => recipe.exportable)
         .then(recipe => {
             const food_ids =
@@ -99,9 +101,13 @@ router.get('/:id', (req, res, next) => {
                     .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
 
 
-            Promise.all(food_ids.map(id => Food.findOne({_id: id})
-                .then(food => food.exportable)
+            Promise.all(food_ids.map(id =>
+                // ignore any food items not in the database
+                Food.findOne({_id: id})
+                    .catch(() => null)
+                    .then(food => food ? food.exportable : null)
             ))
+                .then(foods => foods.filter(v => v))
                 .then(foods => res.wrap({
                     recipe: recipe,
                     food: foods
@@ -169,7 +175,7 @@ router.put('/:id', (req, res, next) => {
                 .filter((food, idx, arr) => arr.indexOf(food) === idx)
                 .map(id => // save the invalid ids
                     Food.findOne({_id: id})
-                        .then(() => null)
+                        .then(record => record ? null : id)
                         .catch(() => id)
                 ) : []
     )
@@ -180,6 +186,7 @@ router.put('/:id', (req, res, next) => {
 
             return Recipe.findOne({_id: req.params.id})
                 .catch(() => Promise.reject(RecordNotFound))
+                .then(record => record ? record : Promise.reject(RecordNotFound))
                 .then(recipe => Object.assign(recipe, req.body))
                 .then(recipe => {
                     if (recipe.serves !== undefined && recipe.makes !== undefined) {
@@ -208,6 +215,7 @@ router.delete('/:id', (req, res, next) => {
 
     Recipe.findOne({_id: req.params.id})
         .catch(() => Promise.reject(RecordNotFound))
+        .then(record => record ? record : Promise.reject(RecordNotFound))
         .then(record => record.remove())
         .then(() => res.status(204).send())
         .catch(err => err === RecordNotFound ?
@@ -244,11 +252,13 @@ router.get('/at/:page', (req, res, next) => {
                     .map(ingredient => ingredient.food_id)
                     .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
 
-            Promise.all(
-                food_ids.map(id => Food.findOne({_id: id})
-                    .then(food => food.exportable)
-                )
-            )
+            Promise.all(food_ids.map(id =>
+                // ignore any food items not in the database
+                Food.findOne({_id: id})
+                    .catch(() => null)
+                    .then(food => food ? food.exportable : null)
+            ))
+                .then(foods => foods.filter(v => v))
                 .then(foods => res.wrap({
                     recipes: recipes,
                     food: foods,

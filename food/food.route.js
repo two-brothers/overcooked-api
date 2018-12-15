@@ -54,6 +54,7 @@ router.get('/:id', (req, res, next) => {
 
     Food.findOne({_id: req.params.id})
         .catch(() => Promise.reject(RecordNotFound))
+        .then(record => record ? record : Promise.reject(RecordNotFound))
         .then(record => res.wrap(record.exportable))
         .catch(err => err === RecordNotFound ?
             next() : // let the 404 handler catch it
@@ -89,6 +90,7 @@ router.put('/:id', (req, res, next) => {
 
     Food.findOne({_id: req.params.id})
         .catch(() => Promise.reject(RecordNotFound))
+        .then(record => record ? record : Promise.reject(RecordNotFound))
         .then(record => Object.assign(record, req.body))
         .then(record => record.save())
         .then(() => res.status(204).send())
@@ -106,6 +108,7 @@ router.delete('/:id', (req, res, next) => {
 
     Food.findOne({_id: req.params.id})
         .catch(() => Promise.reject(RecordNotFound))
+        .then(record => record ? record : Promise.reject(RecordNotFound))
         .then(record => record.remove())
         .then(() => res.status(204).send())
         .catch(err => err === RecordNotFound ?
