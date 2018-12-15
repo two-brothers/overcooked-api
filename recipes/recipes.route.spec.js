@@ -55,6 +55,7 @@ describe('/recipes', () => {
         new Enumerator.custom.simple('is an integer', 1, false),
         new Enumerator.custom.simple('is an empty string', '', false),
         new Enumerator.custom.simple('is not a valid food id', 'invalid_id', false),
+        new Enumerator.custom.simple('is a malformed food id', MockDatabase.A_MALFORMED_RECORD_ID, false),
         new Enumerator.custom.simple('is a valid id', MockDatabase.A_VALID_RECORD_ID, true)
     ];
 
@@ -186,6 +187,16 @@ describe('/recipes', () => {
                 );
             });
 
+            describe('specified id is poorly formed', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
+
             describe('the specified id is valid', () => {
                 let recipeRecord, foodRecords;
 
@@ -242,6 +253,16 @@ describe('/recipes', () => {
                 describe('specified id is invalid', () => {
                     beforeEach(() => {
                         endpoint = `${endpoint}/invalid_id`;
+                    });
+
+                    it('should return a NotFound error', () =>
+                        request.put(endpoint).then(res => res.status.should.equal(404))
+                    );
+                });
+
+                describe('specified id is poorly formed', () => {
+                    beforeEach(() => {
+                        endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
                     });
 
                     it('should return a NotFound error', () =>
@@ -370,6 +391,16 @@ describe('/recipes', () => {
                     request.delete(endpoint).then(res => res.status.should.equal(404))
                 );
             });
+
+            describe('specified id is poorly formed', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.delete(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
         });
 
         describe('the specified id is valid', () => {
@@ -394,11 +425,7 @@ describe('/recipes', () => {
                     .catch(() => Promise.reject(RecordNotFound))
                     .then(() => request.delete(endpoint))
                     .then(() => database.getRecord(DBStructure.models.Recipe, recipe.id))
-                    .then(() => Promise.reject(RecordFound))
-                    .catch(err => [RecordNotFound, RecordFound].includes(err) ?
-                        Promise.reject(err) :
-                        null
-                    )
+                    .then(recipe => recipe ? Promise.reject(RecordFound): null)
             );
         });
     });

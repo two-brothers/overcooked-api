@@ -123,6 +123,26 @@ describe('/food', () => {
                 );
             });
 
+            describe('specified id is poorly formed', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
+
+            describe('specified id is poorly formed', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.get(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
+
             describe('the specified id is valid', () => {
                 it('should return an OK response with the corresponding record', () =>
                     Promise.all(database.getAllRecords(DBStructure.models.Food)
@@ -155,6 +175,16 @@ describe('/food', () => {
                 describe('specified id is invalid', () => {
                     beforeEach(() => {
                         endpoint = `${endpoint}/invalid_id`;
+                    });
+
+                    it('should return a NotFound error', () =>
+                        request.put(endpoint).then(res => res.status.should.equal(404))
+                    );
+                });
+
+                describe('specified id is poorly formed', () => {
+                    beforeEach(() => {
+                        endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
                     });
 
                     it('should return a NotFound error', () =>
@@ -238,6 +268,16 @@ describe('/food', () => {
                 );
             });
 
+            describe('specified id is poorly formed', () => {
+                beforeEach(() => {
+                    endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
+                });
+
+                it('should return a NotFound error', () =>
+                    request.delete(endpoint).then(res => res.status.should.equal(404))
+                );
+            });
+
             describe('the specified id is valid', () => {
                 let food;
                 const RecordNotFound = new Error('Record not found before deletion');
@@ -260,11 +300,7 @@ describe('/food', () => {
                         .catch(() => Promise.reject(RecordNotFound))
                         .then(() => request.delete(endpoint))
                         .then(() => database.getRecord(DBStructure.models.Food, food.id))
-                        .then(() => Promise.reject(RecordFound))
-                        .catch(err => [RecordNotFound, RecordFound].includes(err) ?
-                            Promise.reject(err) :
-                            null
-                        )
+                        .then(record => record ? Promise.reject(RecordFound): null)
                 );
             });
         });
