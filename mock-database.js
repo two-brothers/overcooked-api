@@ -24,6 +24,14 @@ class Database {
     };
 
     /**
+     * A special record id that can be passed to the getRecord function to trigger an error (which is how Mongoose
+     * responds to malformed record ids) instead of returning null (for invalid, but well-formed ids)
+     */
+    static get A_MALFORMED_RECORD_ID() {
+        return 'A_MALFORMED_RECORD_ID'
+    }
+
+    /**
      * Initialise the database and stub the mongoose.connect function
      */
     constructor() {
@@ -114,17 +122,20 @@ class Database {
     getRecord(modelName, id, inSpy = false) {
         const dbModel = this.data[modelName];
 
+        if (!dbModel)
+            throw new Error(`${modelName} is not a model in the mocked database`);
+
         if (id === Database.A_VALID_RECORD_ID) {
             id = Object.getOwnPropertyNames(dbModel.records)
                 .filter(id => dbModel.removed[id] === undefined)
                 .filter(id => dbModel.updated[id] === undefined)[0];
         }
 
-        if (!dbModel)
-            throw new Error(`${modelName} is not a model in the mocked database`);
+        if (id === Database.A_MALFORMED_RECORD_ID)
+            return Promise.reject(`Cast to ObjectId failed for value "{id}"`);
 
         if (dbModel.removed[id])
-            return Promise.reject(`${modelName} record with ${id} has been removed`);
+            return Promise.resolve(null);
 
         if (dbModel.updated[id])
             return Promise.resolve(dbModel.updated[id].clone(inSpy));
@@ -132,7 +143,7 @@ class Database {
         if (dbModel.records[id])
             return Promise.resolve(dbModel.records[id].clone(inSpy));
 
-        return Promise.reject(`No ${modelName} record with ${id} has been found`);
+        return Promise.resolve(null);
     }
 
     /**
@@ -268,7 +279,7 @@ const deepClone = (object) => {
         return object.map(element => deepClone(element));
     }
 
-    if (typeof(object) === 'object') {
+    if (typeof (object) === 'object') {
         const clone = Object.assign({}, object);
         Object.getOwnPropertyNames(clone)
             .filter(name => {
