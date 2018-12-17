@@ -14,6 +14,7 @@ const MongoStore = require('connect-mongo')(session);
 
 const food = require('./food/module');
 const recipes = require('./recipes/module');
+const auth = require('./auth/module');
 const api = require('./api/module');
 const DBNAME = require('./db.name.js');
 
@@ -59,6 +60,9 @@ if (process.env.NODE_ENV !== 'test') {
     });
     app.use(morgan('combined', {stream: accessLogStream}));
 }
+
+/*** AUTHENTICATION ***/
+auth.initialise();
 
 /*** ROUTES ***/
 
