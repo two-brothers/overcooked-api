@@ -47,17 +47,6 @@ app.use(session({
 }));
 app.disable('x-powered-by'); // Don't reveal that we're using Express
 
-/*** CORS (for local CMS running on port 3000) ***/
-
-if (process.env.NODE_ENV === 'local') {
-    app.use((req, res, next) => {
-        res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-        res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-        res.header('Access-Control-Allow-Headers', 'Content-Type');
-        next();
-    })
-}
-
 /*** LOGGING ***/
 
 if (process.env.NODE_ENV !== 'test') {

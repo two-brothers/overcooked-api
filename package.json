@@ -5,7 +5,6 @@
   "scripts": {
     "db": "scripts/run_db.sh",
     "serve": "scripts/build_and_serve.sh",
-    "serve-local": "PORT=4000 NODE_ENV=local node www",
     "test": "scripts/test.sh"
   },
   "dependencies": {
