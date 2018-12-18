@@ -41,7 +41,7 @@ app.use(session({
     rolling: true, // a session ID cookie is set on every response (resetting the expiration time)
     cookie: {
         httpOnly: true, // compliant clients will not reveal the cookie to client-side javascript
-        secure: true, // only send cookies over https,
+        secure: process.env.NODE_ENV !== 'development', // only send cookies over https (except during development),
         maxAge: 1000 * 60 * 30 // 30 minutes
     },
     // TODO: there has got to be a way to stub this in the test file
