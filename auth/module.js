@@ -1,5 +1,12 @@
 const initialise = require('./admin.initialise');
+const strategy = require('./github');
+const serialise = require('./serialise');
+const route = require('./route');
 
 module.exports = {
-    initialise: initialise
+    initialise: initialise,
+    strategy: strategy,
+    serialise: serialise.serialise,
+    deserialise: serialise.deserialise,
+    route: route
 };

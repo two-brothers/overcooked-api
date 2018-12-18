@@ -11,6 +11,7 @@ const path = require('path');
 const swaggerUI = require('swagger-ui-express');
 const mongoose = require('mongoose');
 const MongoStore = require('connect-mongo')(session);
+const passport = require('passport');
 
 const food = require('./food/module');
 const recipes = require('./recipes/module');
@@ -62,13 +63,18 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 /*** AUTHENTICATION ***/
+
 auth.initialise();
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(auth.strategy);
+passport.serializeUser(auth.serialise);
+passport.deserializeUser(auth.deserialise);
 
 /*** ROUTES ***/
 
-app.get('/', (req, res, next) => {
-    res.redirect('/api');
-});
+app.get('/', (req, res, next) => res.redirect('/api'));
+app.use('/auth', auth.route);
 app.use('/food', food.route);
 app.use('/recipes', recipes.route);
 app.use(express.static(path.join(__dirname, 'static')));

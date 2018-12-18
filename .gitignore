@@ -16,3 +16,6 @@ data/db
 
 # mocha reporter
 mochawesome-report
+
+# OAuth secrets
+auth/secrets
