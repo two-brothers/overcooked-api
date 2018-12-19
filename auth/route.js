@@ -3,6 +3,17 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
+const wrapper = require('../response-wrapper');
+
+/**
+ * Create a 'wrap' function that wraps the response
+ * in a json object with a 'data' field before responding
+ * to the client
+ */
+router.use((req, res, next) => {
+    res.wrap = (response) => res.json(wrapper.wrap(response));
+    return next();
+});
 
 /*** URI: /auth ***/
 
@@ -13,5 +24,12 @@ const passport = require('passport');
  */
 router.get('/github', passport.authenticate('github'));
 router.get('/github/callback', passport.authenticate('github'), (req, res, next) => res.redirect('/'));
+
+/**
+ * Return the profile of the authenticated user or null if there is no user
+ */
+router.get('/whoami', (req, res, next) => {
+    res.wrap((req.user && req.user.profile) ? req.user.profile : null);
+});
 
 module.exports = router;
