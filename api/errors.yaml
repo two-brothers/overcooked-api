@@ -9,3 +9,8 @@ UnexpectedServerErrorResponse:
   description: An unexpected server error occurred
   schema:
     $ref: '#/errors/Error'
+
+UnauthorisedErrorResponse:
+  description: The user is not authenticated or is not authorised to make the request
+  schema:
+    $ref: '#/errors/Error'

@@ -18,6 +18,8 @@ FoodPath:
           $ref: '#/definitions/Food'
       400:
         $ref: '#/food/InvalidFoodStructureResponse'
+      401:
+        $ref: '#/errors/UnauthorisedErrorResponse'
       500:
         $ref: '#/errors/UnexpectedServerErrorResponse'
 
@@ -54,6 +56,8 @@ FoodRecordByIdPath:
         $ref: '#/food/FoodSuccessfullyUpdatedResponse'
       400:
         $ref: '#/food/InvalidFoodStructureResponse'
+      401:
+        $ref: '#/errors/UnauthorisedErrorResponse'
       404:
         $ref: '#/food/FoodRecordDoesNotExistResponse'
       500:
@@ -68,6 +72,8 @@ FoodRecordByIdPath:
     responses:
       204:
         $ref: '#/food/FoodRecordSuccessfullyDeletedResponse'
+      401:
+        $ref: '#/errors/UnauthorisedErrorResponse'
       404:
         $ref: '#/food/FoodRecordDoesNotExistResponse'
       500:

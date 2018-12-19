@@ -11,5 +11,6 @@ schemes:
 paths: 'api/paths.yaml'
 recipes: 'api/recipes.yaml'
 food: 'api/food.yaml'
+auth: 'api/auth.yaml'
 definitions: 'api/definitions.yaml'
 errors: 'api/errors.yaml'

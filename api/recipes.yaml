@@ -18,6 +18,8 @@ RecipesPath:
           $ref: '#/definitions/Recipe'
       400:
         $ref: '#/recipes/InvalidRecipeStructureResponse'
+      401:
+        $ref: '#/errors/UnauthorisedErrorResponse'
       500:
         $ref: '#/errors/UnexpectedServerErrorResponse'
 
@@ -63,6 +65,8 @@ RecipesByIdPath:
         $ref: '#/recipes/RecipeSuccessfullyUpdatedResponse'
       400:
         $ref: '#/recipes/InvalidRecipeStructureResponse'
+      401:
+        $ref: '#/errors/UnauthorisedErrorResponse'
       404:
         $ref: '#/recipes/RecipeDoesNotExistResponse'
       500:
@@ -76,6 +80,8 @@ RecipesByIdPath:
     responses:
       204:
         $ref: '#/recipes/RecipeSuccessfullyDeletedResponse'
+      401:
+        $ref: '#/errors/UnauthorisedErrorResponse'
       404:
         $ref: '#/recipes/RecipeDoesNotExistResponse'
       500:

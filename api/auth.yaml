@@ -1,0 +1,39 @@
+# Github authentication
+GithubPath:
+  get:
+    tags:
+      - Authentication
+    summary: Authenticate with GitHub account
+    responses:
+      304:
+        description: >-
+          First redirect to www.github.com, where the user can authenticate if they have not done so recently.
+          Then redirect to /auth/github/callback where the user is validated against the administrator database.
+          Then redirect to the home page of the app with the user authenticated in the session.
+      401:
+        description: Github authentication failed
+      500:
+        description: The user successfully authenticated to GitHub but is not a valid Overcooked administrator.
+
+WhoAmIPath:
+  get:
+    tags:
+      - Authentication
+    summary: Get the profile of the authenticated user
+    responses:
+      200:
+        description: The profile of the authenticated user, or null if the user is anonymous or not an administrator.
+        type: string
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'
+
+LogoutPath:
+  get:
+    tags:
+      - Authentication
+    summary: Log the user out of the current session
+    responses:
+      204:
+        description: The log out was successful.
+      500:
+        $ref: '#/errors/UnexpectedServerErrorResponse'

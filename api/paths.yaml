@@ -1,3 +1,15 @@
+# Github authentication
+/auth/github:
+  $ref: '#/auth/GithubPath'
+
+# Return the active user
+/auth/whoami:
+  $ref: '#/auth/WhoAmIPath'
+
+# Log the user out of the current session
+/auth/logout:
+  $ref: '#/auth/LogoutPath'
+
 # CREATE a recipe
 /recipes:
   $ref: '#/recipes/RecipesPath'
