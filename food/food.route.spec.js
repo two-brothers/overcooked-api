@@ -4,6 +4,7 @@ process.env.NODE_ENV = 'test';
 
 const chai = require('chai');
 const chaiHttp = require('chai-http');
+const sinon = require('sinon');
 
 const MockDatabase = require('../mock-database').db;
 const DBStructure = require('./food.route.mock-db.spec');
@@ -18,10 +19,15 @@ chai.use(chaiHttp);
 describe('/food', () => {
     let server;
     let database;
+    let authenticated;
 
     before(() => {
+        const auth = require('../auth/module');
+        sinon.stub(auth, 'ensureAuth').callsFake((req, res, next) => authenticated ? next() : res.status(401).send());
+
         database = new MockDatabase();
         database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food);
+
         server = require('../www');
     });
 
@@ -37,78 +43,98 @@ describe('/food', () => {
     });
 
     describe('POST', () => {
-        let data;
 
-        /**
-         * Sends the value of 'data' to the listener at 'endpoint' and confirms that
-         * the endpoint responds with a 400 (Bad Request) error
-         */
-        const expectBadPostRequest = () =>
-            it('should return a Bad Request error', () =>
-                request.post(endpoint)
-                    .send(data)
-                    .then(res => res.status.should.equal(400))
-            );
+        describe('user is authenticated', () => {
+
+            beforeEach(() => {
+                authenticated = true
+            });
+
+            let data;
+
+            /**
+             * Sends the value of 'data' to the listener at 'endpoint' and confirms that
+             * the endpoint responds with a 400 (Bad Request) error
+             */
+            const expectBadPostRequest = () =>
+                it('should return a Bad Request error', () =>
+                    request.post(endpoint)
+                        .send(data)
+                        .then(res => res.status.should.equal(400))
+                );
 
 
-        /**
-         * Sends the value of 'data' to the listener at 'endpoint' and confirms that
-         * the endpoint responds with:
-         *   - a 200 (OK) response
-         *   - the returned record matches the sent 'data' with the addition of an 'id' field
-         */
-        const expectNewFoodResponse = () =>
-            it('should return a 200 (OK) response with the new record', () =>
-                request.post(endpoint)
-                    .send(data)
-                    .then(res => {
-                        res.status.should.equal(200);
-                        res.body.data.should.not.be.undefined;
-                        res.body.data.id.should.not.be.undefined;
-                        should.equal(typeof res.body.data.id, 'string');
-                        res.body.data.id.length.should.be.greaterThan(0);
-                        delete res.body.data.id;
-                        res.body.data.should.deep.equal(data);
+            /**
+             * Sends the value of 'data' to the listener at 'endpoint' and confirms that
+             * the endpoint responds with:
+             *   - a 200 (OK) response
+             *   - the returned record matches the sent 'data' with the addition of an 'id' field
+             */
+            const expectNewFoodResponse = () =>
+                it('should return a 200 (OK) response with the new record', () =>
+                    request.post(endpoint)
+                        .send(data)
+                        .then(res => {
+                            res.status.should.equal(200);
+                            res.body.data.should.not.be.undefined;
+                            res.body.data.id.should.not.be.undefined;
+                            should.equal(typeof res.body.data.id, 'string');
+                            res.body.data.id.length.should.be.greaterThan(0);
+                            delete res.body.data.id;
+                            res.body.data.should.deep.equal(data);
+                        })
+                );
+
+            // base the new food on an existing one
+            beforeEach(() =>
+                database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
+                    .then(food => Object.assign({}, food))
+                    .then(food => {
+                        data = food;
+                        delete data.id
                     })
             );
 
-        // base the new food on an existing one
-        beforeEach(() =>
-            database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
-                .then(food => Object.assign({}, food))
-                .then(food => {
-                    data = food;
-                    delete data.id
-                })
-        );
+            // the property under test is added directly to the data object
+            const baseObjFn = () => data;
 
-        // the property under test is added directly to the data object
-        const baseObjFn = () => data;
+            const required = Enumerator.scenario.presence.required;
 
-        const required = Enumerator.scenario.presence.required;
+            const name = Enumerator.scenario.property('name', baseObjFn,
+                required(Enumerator.scenario.object([
+                    new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
+                    new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
+                ]))
+            );
+            Enumerator.enumerate(name, expectNewFoodResponse, expectBadPostRequest);
 
-        const name = Enumerator.scenario.property('name', baseObjFn,
-            required(Enumerator.scenario.object([
-                new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
-                new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
-            ]))
-        );
-        Enumerator.enumerate(name, expectNewFoodResponse, expectBadPostRequest);
+            // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
+            // so I will remove it.
+            const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
+                .filter(scenario => scenario.dependents.length < 2);
 
-        // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
-        // so I will remove it.
-        const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
-            .filter(scenario => scenario.dependents.length < 2);
+            const conversions = Enumerator.scenario.property('conversions', baseObjFn,
+                required(modifiedNonEmptyArray(
+                    Enumerator.scenario.object([
+                        new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
+                        new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
+                    ])
+                ))
+            );
+            Enumerator.enumerate(conversions, expectNewFoodResponse, expectBadPostRequest);
+        });
 
-        const conversions = Enumerator.scenario.property('conversions', baseObjFn,
-            required(modifiedNonEmptyArray(
-                Enumerator.scenario.object([
-                    new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                    new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
-                ])
-            ))
-        );
-        Enumerator.enumerate(conversions, expectNewFoodResponse, expectBadPostRequest);
+        describe('user is not authenticated', () => {
+            beforeEach(() => {
+                authenticated = false
+            });
+
+            it('should return an Unauthorised error', () =>
+                request.post(endpoint)
+                    .send({})
+                    .then(res => res.status.should.equal(401))
+            );
+        });
     });
 
     describe('/:id', () => {
@@ -171,14 +197,124 @@ describe('/food', () => {
                     })
             );
 
-            const unknownRecordTest = () => {
+            describe('user is authenticated', () => {
+                beforeEach(() => {
+                    authenticated = true;
+                });
+
+                const unknownRecordTest = () => {
+                    describe('specified id is invalid', () => {
+                        beforeEach(() => {
+                            endpoint = `${endpoint}/invalid_id`;
+                        });
+
+                        it('should return a NotFound error', () =>
+                            request.put(endpoint).then(res => res.status.should.equal(404))
+                        );
+                    });
+
+                    describe('specified id is poorly formed', () => {
+                        beforeEach(() => {
+                            endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
+                        });
+
+                        it('should return a NotFound error', () =>
+                            request.put(endpoint).then(res => res.status.should.equal(404))
+                        );
+                    });
+                };
+
+                const validFoodTests = () => {
+                    unknownRecordTest();
+
+                    describe('the specified id is valid', () => {
+                        let expected;
+                        let send;
+
+                        beforeEach(() => {
+                            endpoint = `${endpoint}/${food.id}`;
+                            expected = Object.assign({}, food, update);
+                            send = request.put(endpoint).send(update);
+                        });
+
+                        it('should return a NoContent response', () =>
+                            send.then(res => res.status.should.equal(204))
+                        );
+
+                        it('should update the database appropriately', () =>
+                            send
+                                .then(() => database.getRecord(DBStructure.models.Food, food.id))
+                                .then(updated => {
+                                    updated.should.deep.equal(expected);
+                                })
+                        );
+                    });
+                };
+
+                const expectBadPutRequest = () => {
+                    it('should return a Bad Request error', () =>
+                        request.put(`${endpoint}/${food.id}`)
+                            .send(update)
+                            .then(res => res.status.should.equal(400))
+                    );
+                };
+
+                const baseObjFn = () => update; // properties are added directly to the update object
+                const optional = Enumerator.scenario.presence.optional;
+                const required = Enumerator.scenario.presence.required;
+
+                const name = Enumerator.scenario.property('name', baseObjFn,
+                    optional(Enumerator.scenario.object([
+                        new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
+                        new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
+                    ]))
+                );
+                Enumerator.enumerate(name, validFoodTests, expectBadPutRequest);
+
+                // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
+                // so I will remove it.
+                const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
+                    .filter(scenario => scenario.dependents.length < 2);
+
+                const conversions = Enumerator.scenario.property('conversions', baseObjFn,
+                    optional(modifiedNonEmptyArray(
+                        Enumerator.scenario.object([
+                            new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
+                            new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
+                        ])
+                    ))
+                );
+                Enumerator.enumerate(conversions, validFoodTests, expectBadPutRequest);
+            });
+
+            describe('user is not authenticated', () => {
+                beforeEach(() => {
+                    authenticated = false;
+                });
+
+                it('should return an Unauthorised error', () =>
+                    request.put(`${endpoint}/${food.id}`)
+                        .send({})
+                        .then(res => res.status.should.equal(401))
+                );
+            })
+
+
+        });
+
+        describe('DELETE', () => {
+            describe('user is authenticated', () => {
+                beforeEach(() => {
+                    authenticated = true;
+                });
+
                 describe('specified id is invalid', () => {
                     beforeEach(() => {
                         endpoint = `${endpoint}/invalid_id`;
                     });
 
                     it('should return a NotFound error', () =>
-                        request.put(endpoint).then(res => res.status.should.equal(404))
+                        request.delete(endpoint).then(res => res.status.should.equal(404))
                     );
                 });
 
@@ -188,119 +324,48 @@ describe('/food', () => {
                     });
 
                     it('should return a NotFound error', () =>
-                        request.put(endpoint).then(res => res.status.should.equal(404))
+                        request.delete(endpoint).then(res => res.status.should.equal(404))
                     );
                 });
-            };
-
-            const validFoodTests = () => {
-                unknownRecordTest();
 
                 describe('the specified id is valid', () => {
-                    let expected;
-                    let send;
+                    let food;
+                    const RecordNotFound = new Error('Record not found before deletion');
+                    const RecordFound = new Error('Record found after deletion');
 
-                    beforeEach(() => {
-                        endpoint = `${endpoint}/${food.id}`;
-                        expected = Object.assign({}, food, update);
-                        send = request.put(endpoint).send(update);
-                    });
-
-                    it('should return a NoContent response', () =>
-                        send.then(res => res.status.should.equal(204))
-                    );
-
-                    it('should update the database appropriately', () =>
-                        send
-                            .then(() => database.getRecord(DBStructure.models.Food, food.id))
-                            .then(updated => {
-                                updated.should.deep.equal(expected);
+                    beforeEach(() =>
+                        database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
+                            .then(record => {
+                                food = record;
+                                endpoint = `${endpoint}/${food.id}`;
                             })
                     );
+
+                    it('should return a NoContent response', () =>
+                        request.delete(endpoint).then(res => res.status.should.equal(204))
+                    );
+
+                    it('should delete the corresponding food item', () =>
+                        database.getRecord(DBStructure.models.Food, food.id)
+                            .catch(() => Promise.reject(RecordNotFound))
+                            .then(() => request.delete(endpoint))
+                            .then(() => database.getRecord(DBStructure.models.Food, food.id))
+                            .then(record => record ? Promise.reject(RecordFound) : null)
+                    );
                 });
-            };
-
-            const expectBadPutRequest = () => {
-                it('should return a Bad Request error', () =>
-                    request.put(`${endpoint}/${food.id}`)
-                        .send(update)
-                        .then(res => res.status.should.equal(400))
-                );
-            };
-
-            const baseObjFn = () => update; // properties are added directly to the update object
-            const optional = Enumerator.scenario.presence.optional;
-            const required = Enumerator.scenario.presence.required;
-
-            const name = Enumerator.scenario.property('name', baseObjFn,
-                optional(Enumerator.scenario.object([
-                    new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
-                    new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
-                ]))
-            );
-            Enumerator.enumerate(name, validFoodTests, expectBadPutRequest);
-
-            // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
-            // so I will remove it.
-            const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
-                .filter(scenario => scenario.dependents.length < 2);
-
-            const conversions = Enumerator.scenario.property('conversions', baseObjFn,
-                optional(modifiedNonEmptyArray(
-                    Enumerator.scenario.object([
-                        new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                        new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
-                    ])
-                ))
-            );
-            Enumerator.enumerate(conversions, validFoodTests, expectBadPutRequest);
-
-        });
-
-        describe('DELETE', () => {
-            describe('specified id is invalid', () => {
-                beforeEach(() => {
-                    endpoint = `${endpoint}/invalid_id`;
-                });
-
-                it('should return a NotFound error', () =>
-                    request.delete(endpoint).then(res => res.status.should.equal(404))
-                );
             });
 
-            describe('specified id is poorly formed', () => {
-                beforeEach(() => {
-                    endpoint = `${endpoint}/${MockDatabase.A_MALFORMED_RECORD_ID}`;
-                });
-
-                it('should return a NotFound error', () =>
-                    request.delete(endpoint).then(res => res.status.should.equal(404))
-                );
-            });
-
-            describe('the specified id is valid', () => {
-                let food;
-                const RecordNotFound = new Error('Record not found before deletion');
-                const RecordFound = new Error('Record found after deletion');
-
+            describe('user is not authenticated', () => {
                 beforeEach(() =>
                     database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
                         .then(record => {
-                            food = record;
-                            endpoint = `${endpoint}/${food.id}`;
+                            endpoint = `${endpoint}/${record.id}`;
+                            authenticated = false;
                         })
                 );
 
-                it('should return a NoContent response', () =>
-                    request.delete(endpoint).then(res => res.status.should.equal(204))
-                );
-
-                it('should delete the corresponding food item', () =>
-                    database.getRecord(DBStructure.models.Food, food.id)
-                        .catch(() => Promise.reject(RecordNotFound))
-                        .then(() => request.delete(endpoint))
-                        .then(() => database.getRecord(DBStructure.models.Food, food.id))
-                        .then(record => record ? Promise.reject(RecordFound): null)
+                it('should return an Unauthorised error', () =>
+                    request.delete(endpoint).then(res => res.status.should.equal(401))
                 );
             });
         });

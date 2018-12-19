@@ -7,6 +7,10 @@ const Food = require('../food/module').model;
 const UnitTypes = require('../food/module').unit_types;
 const wrapper = require('../response-wrapper');
 const VLD = require('../request-validator');
+const auth = require('../auth/module');
+// use a thunk so it can be mocked in unit tests
+// even if the module is already initialised (for example, by being imported in another file)
+const ensureAuth = (req, res, next) => auth.ensureAuth(req, res, next);
 
 /**
  * Create a 'wrap' function that wraps the response
@@ -23,7 +27,7 @@ router.use((req, res, next) => {
 /**
  * Create a new recipe
  */
-router.post('/', (req, res, next) => {
+router.post('/', ensureAuth, (req, res, next) => {
     const maxUnitType = UnitTypes.length - 1;
 
     const error = VLD.required(req.body.title, VLD.isNonEmptyString, 'Recipe title must be a non-empty string') ||
@@ -122,7 +126,7 @@ router.get('/:id', (req, res, next) => {
 /**
  * Update the specified recipe
  */
-router.put('/:id', (req, res, next) => {
+router.put('/:id', ensureAuth, (req, res, next) => {
     const RecordNotFound = new Error('Record Not Found');
     const maxUnitType = UnitTypes.length - 1;
 
@@ -210,7 +214,7 @@ router.put('/:id', (req, res, next) => {
 /**
  * Delete the specified recipe
  */
-router.delete('/:id', (req, res, next) => {
+router.delete('/:id', ensureAuth, (req, res, next) => {
     const RecordNotFound = new Error('Record Not Found');
 
     Recipe.findOne({_id: req.params.id})
