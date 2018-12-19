@@ -174,18 +174,23 @@ class Database {
      * and resets the Mongoose model stubs.
      */
     reset() {
-        sinon.restore();
         Object.getOwnPropertyNames(this.data)
             .map(modelName => {
                 const model = this.data[modelName];
                 model.updated = {};
                 model.removed = {};
+
+                model.mongoose.findOne.restore ? model.mongoose.findOne.restore() : null;
                 sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id, true));
+
+                model.mongoose.create.restore ? model.mongoose.create.restore() : null;
                 sinon.stub(model.mongoose, 'create').callsFake(param => {
                     const record = Database.newRecord(model, param);
                     model.updated[record.id] = record;
                     return this.getRecord(modelName, record.id, true);
                 });
+
+                model.mongoose.find.restore ? model.mongoose.find.restore() : null;
                 sinon.stub(model.mongoose, 'find').callsFake(() => {
                     const records = this.getAllRecords(modelName, true);
                     records.sort((a, b) => a.id < b.id);
