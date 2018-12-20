@@ -32,4 +32,12 @@ router.get('/whoami', (req, res, next) => {
     res.wrap((req.user && req.user.profile) ? req.user.profile : null);
 });
 
+/**
+ * Log the user out of the current session
+ */
+router.get('/logout', (req, res, next) => {
+    req.logout();
+    res.status(204).send();
+});
+
 module.exports = router;
