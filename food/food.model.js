@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const MaxUnitType = require('./unit_types').length - 1;
 
 const Food = new mongoose.Schema({
     name: {
@@ -20,7 +21,7 @@ const Food = new mongoose.Schema({
                 type: Number,
                 required: true,
                 min: 0,
-                max: 12,
+                max: MaxUnitType,
                 validate: {
                     validator: Number.isInteger,
                     message: 'Unit ID must be an integer'
@@ -28,10 +29,17 @@ const Food = new mongoose.Schema({
             },
             ratio: {
                 type: Number,
-                required: true
+                required: true,
+                validate: {
+                    validator: ratio => ratio > 0,
+                    message: 'Conversion ratio must be greater than zero'
+                }
             }
         }],
-        required: true
+        validate: {
+            validator: conversions => conversions.length > 0,
+            message: 'There must be at least one conversion'
+        }
     }
 });
 
