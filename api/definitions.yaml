@@ -41,20 +41,44 @@ IngredientSection:
     ingredients:
       type: array
       items:
-        $ref: '#/definitions/Ingredient'
+        required:
+          - ingredient_type
+        properties:
+          ingredient_type:
+            type: string
+            enum: [Quantified, FreeText]
+        discriminator:
+          propertyName: ingredient_type
 
-Ingredient:
+Quantified:
   required:
+    - ingredient_type
     - amount
-    - unit
-    - foodID
+    - unit_id
+    - food_id
   properties:
+    ingredient_type:
+      type: string
+      pattern: 'Quantified'
     amount:
       $ref: '#/definitions/Quantity'
-    unit_id:
-      $ref: '#/definitions/UnitID'
+    unit_ids:
+      $ref: '#/definitions/UnitIDs'
     food_id:
       $ref: '#/definitions/ID'
+    additional_desc:
+      $ref: '#/definitions/NonEmptyString'
+
+FreeText:
+  required:
+    - ingredient_type
+    - description
+  properties:
+    ingredient_type:
+      type: string
+      pattern: 'FreeText'
+    description:
+      $ref: '#/definitions/NonEmptyString'
 
 Food:
   required:
@@ -110,9 +134,11 @@ Duration:
 
 # The app uses a hardcoded enum to describe units
 UnitID:
-  type: integer
-  minimum: 0
-  maximum: 12
+  type: array
+  items:
+    type: integer
+    minimum: 0
+    maximum: 12
 
 Timestamp:
   type: integer

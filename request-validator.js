@@ -12,6 +12,7 @@ const isNonEmptyString = (value) => typeof value === 'string' && value.length > 
 const isPositiveNumber = (value) => typeof value === 'number' && value > 0;
 const isBoundedInt = (min, max) => ((value) => Number.isInteger(value) && value >= min && value <= max);
 const isNonEmptyArray = (value) => Array.isArray(value) && value.length > 0;
+const isOneOf = (options) => (value) => options.includes(value);
 
 module.exports = {
     required: requiredField,
@@ -20,5 +21,6 @@ module.exports = {
     isNonEmptyString: isNonEmptyString,
     isPositiveNumber: isPositiveNumber,
     isBoundedInt: isBoundedInt,
-    isNonEmptyArray: isNonEmptyArray
+    isNonEmptyArray: isNonEmptyArray,
+    isOneOf: isOneOf
 };

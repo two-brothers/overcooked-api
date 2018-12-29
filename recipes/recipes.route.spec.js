@@ -9,6 +9,7 @@ const sinon = require('sinon');
 const MockDatabase = require('../mock-database').db;
 const DBStructure = require('./recipes.route.mock-db.spec');
 const Enumerator = require('../bdd-enumerator/module');
+const EnumeratorUtil = require('../enumerator-utility');
 const Food = require('../food/module').model;
 const FoodSample = require('../food/module').sample;
 const MaxUnitType = require('../food/module').unit_types.length - 1;
@@ -18,6 +19,49 @@ const RecipesSample = require('./recipe.sample');
 const should = chai.should();
 chai.use(chaiHttp);
 
+const {simple, dependent} = Enumerator.custom;
+const {
+    presence, property, nonEmptyString, xorProperties, mutexProperties, finitePositiveNumber, object, boundedInteger
+} = Enumerator.scenario;
+const {simplifiedNonEmptyArray} = EnumeratorUtil;
+
+const titleScenarios = nonEmptyString;
+const makesScenarios = finitePositiveNumber;
+const servesScenarios = finitePositiveNumber;
+const prepTimeScenarios = finitePositiveNumber;
+const cookTimeScenarios = finitePositiveNumber;
+const foodIDScenarios = [
+    new simple('is an integer', 1, false),
+    new simple('is an empty string', '', false),
+    new simple('is not a valid food id', 'invalid_id', false),
+    new simple('is a malformed food id', MockDatabase.A_MALFORMED_RECORD_ID, false),
+    new simple('is a valid id', MockDatabase.A_VALID_RECORD_ID, true)
+];
+// the scenarios for Quantified Ingredients
+const ingredientScenarios = object([
+    new dependent('ingredient_type', [new simple('is "Quantified"', 'Quantified', true)]),
+    new dependent('amount', presence.required(finitePositiveNumber)),
+    new dependent('unit_ids', simplifiedNonEmptyArray(presence.required(boundedInteger(0, MaxUnitType)))),
+    new dependent('food_id', presence.required(foodIDScenarios)),
+    new dependent('additional_desc', presence.optional(nonEmptyString))
+]) // the scenarios for FreeText Ingredients
+.concat(object([
+    new dependent('ingredient_type', [new simple('is "FreeText"', 'FreeText', true)]),
+    new dependent('description', presence.required(nonEmptyString))
+]))
+// a scenario for an unknown ingredient type
+.concat(object([
+    new dependent('ingredient_type', [
+        new simple('is "AnotherType"', 'AnotherType', false)
+    ])
+]));
+const ingredientSectionsScenarios = simplifiedNonEmptyArray(object([
+    new dependent('heading', presence.optional(nonEmptyString)),
+    new dependent('ingredients', presence.required(simplifiedNonEmptyArray(ingredientScenarios)))
+]));
+const methodScenarios = simplifiedNonEmptyArray(nonEmptyString);
+const referenceUrlScenarios = nonEmptyString;
+const imageUrlScenarios = nonEmptyString;
 
 describe('/recipes', () => {
     let server;
@@ -36,7 +80,9 @@ describe('/recipes', () => {
         return Promise.all(database.getAllRecords(DBStructure.models.Food))
             .then(foodRecords => {
                 recipeSamples.map(recipe => recipe.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
-                    ingredient.food_id = foodRecords[ingredient.food_id].id;
+                    if (ingredient.ingredient_type === 'Quantified') {
+                        ingredient.food_id = foodRecords[ingredient.food_id].id;
+                    }
                 })))
             })
             .then(() => database.addModel(Recipe, DBStructure.models.Recipe, recipeSamples, DBStructure.records.Recipe))
@@ -55,15 +101,6 @@ describe('/recipes', () => {
         request = chai.request(server);
         database.reset();
     });
-
-
-    const foodIDScenarios = [
-        new Enumerator.custom.simple('is an integer', 1, false),
-        new Enumerator.custom.simple('is an empty string', '', false),
-        new Enumerator.custom.simple('is not a valid food id', 'invalid_id', false),
-        new Enumerator.custom.simple('is a malformed food id', MockDatabase.A_MALFORMED_RECORD_ID, false),
-        new Enumerator.custom.simple('is a valid id', MockDatabase.A_VALID_RECORD_ID, true)
-    ];
 
     describe('POST', () => {
         describe('user is authenticated', () => {
@@ -125,65 +162,23 @@ describe('/recipes', () => {
 
             // the property under test is added directly to the data object
             const baseObjFn = () => data;
-            const optional = Enumerator.scenario.presence.optional;
-            const required = Enumerator.scenario.presence.required;
 
-            const title = Enumerator.scenario.property('title', baseObjFn, required(Enumerator.scenario.nonEmptyString));
-            Enumerator.enumerate(title, expectNewRecipeResponse, expectBadPostRequest);
-
-            const makesAndServes = Enumerator.scenario.xorProperties(
+            const title = property('title', baseObjFn, presence.required(titleScenarios));
+            const makesAndServes = xorProperties(
                 baseObjFn,
-                new Enumerator.custom.dependent('makes', optional(Enumerator.scenario.finitePositiveNumber)),
-                new Enumerator.custom.dependent('serves', optional(Enumerator.scenario.finitePositiveNumber))
+                new dependent('makes', presence.optional(makesScenarios)),
+                new dependent('serves', presence.optional(servesScenarios))
             );
-            Enumerator.enumerate(makesAndServes, expectNewRecipeResponse, expectBadPostRequest);
+            const prepTime = property('prep_time', baseObjFn, presence.required(prepTimeScenarios));
+            const cookTime = property('cook_time', baseObjFn, presence.required(cookTimeScenarios));
+            const ingredient_sections = property('ingredient_sections', baseObjFn, presence.required(ingredientSectionsScenarios));
+            const method = property('method', baseObjFn, presence.required(methodScenarios));
+            const reference = property('reference_url', baseObjFn, presence.required(referenceUrlScenarios));
+            const image = property('image_url', baseObjFn, presence.required(imageUrlScenarios));
 
-            const prepTime = Enumerator.scenario.property('prep_time', baseObjFn, required(Enumerator.scenario.finitePositiveNumber));
-            Enumerator.enumerate(prepTime, expectNewRecipeResponse, expectBadPostRequest);
+            [title, makesAndServes, prepTime, cookTime, ingredient_sections, method, reference, image]
+                .map(scenarios => Enumerator.enumerate(scenarios, expectNewRecipeResponse, expectBadPostRequest));
 
-            const cookTime = Enumerator.scenario.property('cook_time', baseObjFn, required(Enumerator.scenario.finitePositiveNumber));
-            Enumerator.enumerate(cookTime, expectNewRecipeResponse, expectBadPostRequest);
-
-            // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex
-            // object like ingredient_sections so I will remove it.
-            const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
-                .filter(scenario => scenario.dependents.length < 2);
-
-            const ingredient_sections = Enumerator.scenario.property(
-                'ingredient_sections',
-                baseObjFn,
-                required(modifiedNonEmptyArray(
-                    Enumerator.scenario.object([
-                        new Enumerator.custom.dependent('heading', optional(Enumerator.scenario.nonEmptyString)),
-                        new Enumerator.custom.dependent(
-                            'ingredients',
-                            required(modifiedNonEmptyArray(
-                                Enumerator.scenario.object([
-                                    new Enumerator.custom.dependent('amount', required(Enumerator.scenario.finitePositiveNumber)),
-                                    new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                                    new Enumerator.custom.dependent('food_id', required(foodIDScenarios))
-                                ])
-                            ))
-                        )
-                    ])
-                ))
-            );
-            Enumerator.enumerate(ingredient_sections, expectNewRecipeResponse, expectBadPostRequest);
-
-            const method = Enumerator.scenario.property('method', baseObjFn,
-                required(Enumerator.scenario.nonEmptyArray(Enumerator.scenario.nonEmptyString))
-            );
-            Enumerator.enumerate(method, expectNewRecipeResponse, expectBadPostRequest);
-
-            const reference = Enumerator.scenario.property('reference_url', baseObjFn,
-                required(Enumerator.scenario.nonEmptyString)
-            );
-            Enumerator.enumerate(reference, expectNewRecipeResponse, expectBadPostRequest);
-
-            const image = Enumerator.scenario.property('image_url', baseObjFn,
-                required(Enumerator.scenario.nonEmptyString)
-            );
-            Enumerator.enumerate(image, expectNewRecipeResponse, expectBadPostRequest);
         });
 
         describe('user is not authenticated', () => {
@@ -229,7 +224,15 @@ describe('/recipes', () => {
                     database.reset();
                     database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
                         .then(record => {
-                            recipeRecord = record
+                            // ensure the record has both ingredient types to exercise all code paths
+                            const ingTypes = record.ingredient_sections
+                                .map(section => section.ingredients)
+                                .reduce((a, b) => a.concat(b))
+                                .map(ingredient => ingredient.ingredient_type);
+                            ingTypes.includes('Quantified').should.equal(true);
+                            ingTypes.includes('FreeText').should.equal(true);
+
+                            recipeRecord = record;
                         })
                         .then(() => Promise.all(database.getAllRecords(DBStructure.models.Food)))
                         .then(foods => {
@@ -273,7 +276,6 @@ describe('/recipes', () => {
                     })
             );
 
-
             describe('user is authenticated', () => {
                 beforeEach(() => {
                     authenticated = true;
@@ -300,7 +302,6 @@ describe('/recipes', () => {
                         );
                     });
                 };
-
 
                 const validRecipeTests = () => {
                     unknownRecordTest();
@@ -349,65 +350,22 @@ describe('/recipes', () => {
                 // Instead, treat each property update individually
 
                 const baseObjFn = () => update; // properties are added directly to the update object
-                const optional = Enumerator.scenario.presence.optional;
-                const required = Enumerator.scenario.presence.required;
 
-                const title = Enumerator.scenario.property('title', baseObjFn, optional(Enumerator.scenario.nonEmptyString));
-                Enumerator.enumerate(title, validRecipeTests, invalidRecipeTests);
-
-                const makesAndServes = Enumerator.scenario.mutexProperties(
+                const title = property('title', baseObjFn, presence.optional(titleScenarios));
+                const makesAndServes = mutexProperties(
                     baseObjFn,
-                    new Enumerator.custom.dependent('makes', optional(Enumerator.scenario.finitePositiveNumber)),
-                    new Enumerator.custom.dependent('serves', optional(Enumerator.scenario.finitePositiveNumber))
+                    new dependent('makes', presence.optional(makesScenarios)),
+                    new dependent('serves', presence.optional(servesScenarios))
                 );
-                Enumerator.enumerate(makesAndServes, validRecipeTests, invalidRecipeTests);
+                const prepTime = property('prep_time', baseObjFn, presence.optional(prepTimeScenarios));
+                const cookTime = property('cook_time', baseObjFn, presence.optional(cookTimeScenarios));
+                const ingredient_sections = property('ingredient_sections', baseObjFn, presence.optional(ingredientSectionsScenarios));
+                const method = property('method', baseObjFn, presence.optional(methodScenarios));
+                const reference = property('reference_url', baseObjFn, presence.optional(referenceUrlScenarios));
+                const image = property('image_url', baseObjFn, presence.optional(imageUrlScenarios));
 
-                const prepTime = Enumerator.scenario.property('prep_time', baseObjFn, optional(Enumerator.scenario.finitePositiveNumber));
-                Enumerator.enumerate(prepTime, validRecipeTests, invalidRecipeTests);
-
-                const cookTime = Enumerator.scenario.property('cook_time', baseObjFn, optional(Enumerator.scenario.finitePositiveNumber));
-                Enumerator.enumerate(cookTime, validRecipeTests, invalidRecipeTests);
-
-                // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex
-                // object like ingredient_sections so I will remove it.
-                const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
-                    .filter(scenario => scenario.dependents.length < 2);
-
-                const ingredient_sections = Enumerator.scenario.property(
-                    'ingredient_sections',
-                    baseObjFn,
-                    optional(modifiedNonEmptyArray(
-                        Enumerator.scenario.object([
-                            new Enumerator.custom.dependent('heading', optional(Enumerator.scenario.nonEmptyString)),
-                            new Enumerator.custom.dependent(
-                                'ingredients',
-                                required(modifiedNonEmptyArray(
-                                    Enumerator.scenario.object([
-                                        new Enumerator.custom.dependent('amount', required(Enumerator.scenario.finitePositiveNumber)),
-                                        new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                                        new Enumerator.custom.dependent('food_id', required(foodIDScenarios))
-                                    ])
-                                ))
-                            )
-                        ])
-                    ))
-                );
-                Enumerator.enumerate(ingredient_sections, validRecipeTests, invalidRecipeTests);
-
-                const method = Enumerator.scenario.property('method', baseObjFn,
-                    optional(Enumerator.scenario.nonEmptyArray(Enumerator.scenario.nonEmptyString))
-                );
-                Enumerator.enumerate(method, validRecipeTests, invalidRecipeTests);
-
-                const reference = Enumerator.scenario.property('reference_url', baseObjFn,
-                    optional(Enumerator.scenario.nonEmptyString)
-                );
-                Enumerator.enumerate(reference, validRecipeTests, invalidRecipeTests);
-
-                const image = Enumerator.scenario.property('image_url', baseObjFn,
-                    optional(Enumerator.scenario.nonEmptyString)
-                );
-                Enumerator.enumerate(image, validRecipeTests, invalidRecipeTests);
+                [title, makesAndServes, prepTime, cookTime, ingredient_sections, method, reference, image]
+                    .map(scenarios => Enumerator.enumerate(scenarios, validRecipeTests, invalidRecipeTests));
             });
 
             describe('user is not authenticated', () => {
@@ -535,6 +493,7 @@ describe('/recipes', () => {
                         res.body.data.recipes
                             .map(recipe => recipe.ingredient_sections).reduce(flatten)
                             .map(section => section.ingredients).reduce(flatten)
+                            .filter(ingredient => ingredient.ingredient_type === 'Quantified')
                             .map(ingredient => ingredient.food_id)
                             .map(id => foodIds.includes(id).should.equal(true))
                     })
@@ -547,6 +506,7 @@ describe('/recipes', () => {
                         const requiredFoods = res.body.data.recipes
                             .map(recipe => recipe.ingredient_sections).reduce(flatten)
                             .map(section => section.ingredients).reduce(flatten)
+                            .filter(ingredient => ingredient.ingredient_type === 'Quantified')
                             .map(ingredient => ingredient.food_id);
                         res.body.data.food.map(food =>
                             requiredFoods.includes(food.id).should.equal(true)
@@ -683,3 +643,4 @@ describe('/recipes', () => {
         });
     });
 });
+

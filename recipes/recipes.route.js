@@ -43,12 +43,24 @@ router.post('/', ensureAuth, (req, res, next) => {
             VLD.required(section.ingredients, VLD.isNonEmptyArray,
                 `Recipe ingredient_sections[${secIdx}].ingredients must be a non-empty array`) ||
             section.ingredients.reduce((error, ingredient, ingIdx) => error || (
-                VLD.required(ingredient.amount, VLD.isPositiveNumber,
-                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
-                VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, maxUnitType),
-                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
-                VLD.required(ingredient.food_id, VLD.isNonEmptyString,
-                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`)
+                VLD.required(ingredient.ingredient_type, VLD.isOneOf('Quantified', 'FreeText')) ||
+                ingredient.ingredient_type === 'Quantified' ?
+                    (
+                        VLD.required(ingredient.amount, VLD.isPositiveNumber,
+                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
+                        VLD.required(ingredient.unit_ids, VLD.isNonEmptyArray,
+                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_ids must be a non-empty array`) ||
+                        ingredient.unit_ids.reduce((error, unit_id, uidIdx) => error ||
+                            VLD.required(unit_id, VLD.isBoundedInt(0, maxUnitType),
+                                `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id[${uidIdx}] must be an integer between 0 and ${maxUnitType}`
+                            ), null) ||
+                        VLD.required(ingredient.food_id, VLD.isNonEmptyString,
+                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`) ||
+                        VLD.optional(ingredient.additional_desc, VLD.isNonEmptyString,
+                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].additional_desc (if defined) must be a non-empty string`)
+                    ) :
+                    VLD.required(ingredient.description, VLD.isNonEmptyString,
+                        `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].description must be a non-empty string`)
             ), null)
         ), null) ||
         VLD.required(req.body.method, VLD.isNonEmptyArray, 'Recipe method must be a non-empty array') ||
@@ -101,9 +113,9 @@ router.get('/:id', (req, res, next) => {
                 recipe.ingredient_sections
                     .map(section => section.ingredients)
                     .reduce((a, b) => a.concat(b))
+                    .filter(ingredient => ingredient.ingredient_type === 'Quantified')
                     .map(ingredient => ingredient.food_id)
                     .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
-
 
             Promise.all(food_ids.map(id =>
                 // ignore any food items not in the database
@@ -144,12 +156,24 @@ router.put('/:id', ensureAuth, (req, res, next) => {
                     VLD.required(section.ingredients, VLD.isNonEmptyArray,
                         `Recipe ingredient_sections[${secIdx}].ingredients must be a non-empty array`) ||
                     section.ingredients.reduce((error, ingredient, ingIdx) => error || (
-                        VLD.required(ingredient.amount, VLD.isPositiveNumber,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a a positive number`) ||
-                        VLD.required(ingredient.unit_id, VLD.isBoundedInt(0, maxUnitType),
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
-                        VLD.required(ingredient.food_id, VLD.isNonEmptyString,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`)
+                        VLD.required(ingredient.ingredient_type, VLD.isOneOf('Quantified', 'FreeText')) ||
+                        ingredient.ingredient_type === 'Quantified' ?
+                            (
+                                VLD.required(ingredient.amount, VLD.isPositiveNumber,
+                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
+                                VLD.required(ingredient.unit_ids, VLD.isNonEmptyArray,
+                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_ids must be a non-empty array`) ||
+                                ingredient.unit_ids.reduce((error, unit_id, uidIdx) => error ||
+                                    VLD.required(unit_id, VLD.isBoundedInt(0, maxUnitType),
+                                        `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id[${uidIdx}] must be an integer between 0 and ${maxUnitType}`
+                                    ), null) ||
+                                VLD.required(ingredient.food_id, VLD.isNonEmptyString,
+                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`) ||
+                                VLD.optional(ingredient.additional_desc, VLD.isNonEmptyString,
+                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].additional_desc (if defined) must be a non-empty string`)
+                            ) :
+                            VLD.required(ingredient.description, VLD.isNonEmptyString,
+                                `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].description must be a non-empty string`)
                     ), null)
                 ), null) :
                 null
@@ -175,6 +199,7 @@ router.put('/:id', ensureAuth, (req, res, next) => {
             req.body.ingredient_sections
                 .map(section => section.ingredients)
                 .reduce((a, b) => a.concat(b))
+                .filter(ingredient => ingredient.ingredient_type === 'Quantified')
                 .map(ingredient => ingredient.food_id)
                 .filter((food, idx, arr) => arr.indexOf(food) === idx)
                 .map(id => // save the invalid ids
@@ -253,6 +278,7 @@ router.get('/at/:page', (req, res, next) => {
                     .reduce((a, b) => a.concat(b))
                     .map(section => section.ingredients)
                     .reduce((a, b) => a.concat(b))
+                    .filter(ingredient => ingredient.ingredient_type === 'Quantified')
                     .map(ingredient => ingredient.food_id)
                     .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
 

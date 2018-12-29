@@ -7,7 +7,7 @@ const EnumeratorUtil = require('../enumerator-utility');
 const MaxUnitType = require('../food/module').unit_types.length - 1;
 
 const {
-    property, object, nonEmptyString, nonEmptyArray,
+    property, object, nonEmptyString,
     xorProperties, presence, finitePositiveNumber, boundedInteger
 } = Enumerator.scenario;
 const {dependent, simple} = Enumerator.custom;
@@ -75,24 +75,39 @@ describe('Recipe Model', () => {
     const prepTime = property('prep_time', baseObjFn, presence.required(allowNumericStrings(finitePositiveNumber)));
     const cookTime = property('cook_time', baseObjFn, presence.required(allowNumericStrings(finitePositiveNumber)));
 
+
+    const ingredient_type = (ingType) => [
+        new simple('is "Quantified"', 'Quantified', ingType === 0),
+        new simple('is "FreeText"', 'FreeText', ingType === 1),
+    ];
+    // the scenarios for Quantified Ingredients
+    const ingredient = object([
+        new dependent('ingredient_type', ingredient_type(0)),
+        new dependent('amount', presence.required(allowNumericStrings(finitePositiveNumber))),
+        new dependent('unit_ids', presence.required(simplifiedNonEmptyArray(allowNumericStrings(boundedInteger(0, MaxUnitType))))),
+        new dependent('food_id', presence.required(foodIDScenarios)),
+        new dependent('additional_desc', presence.optional(allowNumbers(nonEmptyString)))
+    ]) // the scenarios for FreeText Ingredients
+        .concat(object([
+            new dependent('ingredient_type', ingredient_type(1)),
+            new dependent('description', presence.required(allowNumbers(nonEmptyString)))
+        ]))
+        // a scenario for an unknown ingredient type
+        .concat(object([
+            new dependent('ingredient_type', [new simple('is "AnotherType"', 'AnotherType', false)])
+        ]));
+
     const ingredient_sections = property('ingredient_sections', baseObjFn,
         presence.required(simplifiedNonEmptyArray(
             object([
                 new dependent('heading', presence.optional(allowNumbers(nonEmptyString))),
-                new dependent('ingredients', presence.required(simplifiedNonEmptyArray(
-                    object([
-                        new dependent('amount', presence.required(allowNumericStrings(finitePositiveNumber))),
-                        new dependent('unit_id', presence.required(allowNumericStrings(boundedInteger(0, MaxUnitType)))),
-                        new dependent('food_id', presence.required(foodIDScenarios))
-                    ])
-                    ))
-                )
+                new dependent('ingredients', presence.required(simplifiedNonEmptyArray(ingredient)))
             ])
         ))
     );
 
     const method = property('method', baseObjFn, presence.required(
-        allowStrings(allowNumbers(nonEmptyArray(allowNumbers(nonEmptyString)))))
+        allowStrings(allowNumbers(simplifiedNonEmptyArray(allowNumbers(nonEmptyString)))))
     );
     const reference_url = property('reference_url', baseObjFn, presence.required(allowNumbers(nonEmptyString)));
     const image_url = property('image_url', baseObjFn, presence.required(allowNumbers(nonEmptyString)));
@@ -100,5 +115,3 @@ describe('Recipe Model', () => {
     [title, makesAndServes, prepTime, cookTime, ingredient_sections, method, reference_url, image_url]
         .map(propertyScenario => Enumerator.enumerate(propertyScenario, expectValid, expectInvalid));
 });
-
-

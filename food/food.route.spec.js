@@ -9,12 +9,24 @@ const sinon = require('sinon');
 const MockDatabase = require('../mock-database').db;
 const DBStructure = require('./food.route.mock-db.spec');
 const Enumerator = require('../bdd-enumerator/module');
+const EnumeratorUtil = require('../enumerator-utility');
 const Food = require('./food.model');
 const MaxUnitType = require('./unit_types').length - 1;
 const FoodSample = require('./food.sample');
 
 const should = chai.should();
 chai.use(chaiHttp);
+
+const dependent = Enumerator.custom.dependent;
+const {presence, property, nonEmptyString, finitePositiveNumber, object, boundedInteger} = Enumerator.scenario;
+const { simplifiedNonEmptyArray } = EnumeratorUtil;
+
+const singularScenarios = nonEmptyString;
+const pluralScenarios = nonEmptyString;
+const conversionsScenarios = simplifiedNonEmptyArray(object([
+    new dependent('unit_id', presence.required(boundedInteger(0, MaxUnitType))),
+    new dependent('ratio', presence.required(finitePositiveNumber))
+]));
 
 describe('/food', () => {
     let server;
@@ -98,30 +110,14 @@ describe('/food', () => {
             // the property under test is added directly to the data object
             const baseObjFn = () => data;
 
-            const required = Enumerator.scenario.presence.required;
+            const name = property('name', baseObjFn, presence.required(object([
+                new dependent('singular', presence.required(singularScenarios)),
+                new dependent('plural', presence.required(pluralScenarios))
+            ])));
+            const conversions = property('conversions', baseObjFn, presence.required(conversionsScenarios));
 
-            const name = Enumerator.scenario.property('name', baseObjFn,
-                required(Enumerator.scenario.object([
-                    new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
-                    new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
-                ]))
-            );
-            Enumerator.enumerate(name, expectNewFoodResponse, expectBadPostRequest);
-
-            // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
-            // so I will remove it.
-            const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
-                .filter(scenario => scenario.dependents.length < 2);
-
-            const conversions = Enumerator.scenario.property('conversions', baseObjFn,
-                required(modifiedNonEmptyArray(
-                    Enumerator.scenario.object([
-                        new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                        new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
-                    ])
-                ))
-            );
-            Enumerator.enumerate(conversions, expectNewFoodResponse, expectBadPostRequest);
+            [name, conversions]
+                .map(scenarios => Enumerator.enumerate(scenarios, expectNewFoodResponse, expectBadPostRequest));
         });
 
         describe('user is not authenticated', () => {
@@ -260,31 +256,14 @@ describe('/food', () => {
                 };
 
                 const baseObjFn = () => update; // properties are added directly to the update object
-                const optional = Enumerator.scenario.presence.optional;
-                const required = Enumerator.scenario.presence.required;
+                const name = property('name', baseObjFn, presence.optional(object([
+                    new dependent('singular', presence.required(singularScenarios)),
+                    new dependent('plural', presence.required(pluralScenarios))
+                ])));
+                const conversions = property('conversions', baseObjFn, presence.optional(conversionsScenarios));
 
-                const name = Enumerator.scenario.property('name', baseObjFn,
-                    optional(Enumerator.scenario.object([
-                        new Enumerator.custom.dependent('singular', required(Enumerator.scenario.nonEmptyString)),
-                        new Enumerator.custom.dependent('plural', required(Enumerator.scenario.nonEmptyString))
-                    ]))
-                );
-                Enumerator.enumerate(name, validFoodTests, expectBadPutRequest);
-
-                // The nonEmptyArray scenario with two different elements is prohibitively expensive to run for a complex object
-                // so I will remove it.
-                const modifiedNonEmptyArray = (elementScenarios) => Enumerator.scenario.nonEmptyArray(elementScenarios)
-                    .filter(scenario => scenario.dependents.length < 2);
-
-                const conversions = Enumerator.scenario.property('conversions', baseObjFn,
-                    optional(modifiedNonEmptyArray(
-                        Enumerator.scenario.object([
-                            new Enumerator.custom.dependent('unit_id', required(Enumerator.scenario.boundedInteger(0, MaxUnitType))),
-                            new Enumerator.custom.dependent('ratio', required(Enumerator.scenario.finitePositiveNumber))
-                        ])
-                    ))
-                );
-                Enumerator.enumerate(conversions, validFoodTests, expectBadPutRequest);
+                [name, conversions]
+                    .map(scenarios => Enumerator.enumerate(scenarios, validFoodTests, expectBadPutRequest));
             });
 
             describe('user is not authenticated', () => {
@@ -494,3 +473,4 @@ describe('/food', () => {
         });
     });
 });
+

@@ -7,10 +7,18 @@ const MaxUnitType = require('../food/module').unit_types.length - 1;
 const isPositiveNumber = v => v > 0;
 const isPopulated = arr => arr.length > 0;
 
+
+/**
+ * Each ingredient can have one of two different structures, depending on the ingredient type.
+ */
+const options = {discriminatorKey: 'ingredient_type', _id: false, strict: true};
+const IngredientSchema = new mongoose.Schema({}, options);
+
 const Recipe = new mongoose.Schema({
     title: {
         type: String,
-        required: true
+        required: true,
+        minlength: 1
     },
     serves: {
         type: Number,
@@ -61,34 +69,13 @@ const Recipe = new mongoose.Schema({
                 minlength: 1
             },
             ingredients: {
-                type: [{
-                    _id: false,
-                    amount: {
-                        type: Number,
-                        required: true,
-                        validate: {
-                            validator: isPositiveNumber,
-                            message: 'ingredient amount must be greater than zero'
-                        }
-                    },
-                    unit_id: {
-                        type: Number,
-                        required: true,
-                        min: 0,
-                        max: MaxUnitType,
-                        validate: {
-                            validator: Number.isInteger,
-                            message: 'Unit ID must be an integer'
-                        }
-                    },
-                    food_id: {
-                        type: mongoose.Schema.ObjectId,
-                        required: true
-                    }
-                }],
+                type: [IngredientSchema],
                 validate: {
-                    validator: isPopulated,
-                    message: 'There must be at least one ingredient in every ingredient section'
+                    validator: ingredients => ingredients.length > 0 &&
+                        ingredients.map(ingredient => ['Quantified', 'FreeText'].includes(ingredient.ingredient_type))
+                            .reduce((a, b) => a && b, true),
+                    message: 'There must be at least one ingredient in every ingredient section, ' +
+                        'and all ingredient types must be either "Quantified" or "FreeText"'
                 }
             }
         }],
@@ -115,6 +102,52 @@ const Recipe = new mongoose.Schema({
         required: true
     }
 }, {timestamps: true});
+
+
+Recipe.path('ingredient_sections').schema.path('ingredients').discriminator('Quantified', new mongoose.Schema({
+    amount: {
+        type: Number,
+        required: true,
+        validate: {
+            validator: isPositiveNumber,
+            message: 'ingredient amount must be greater than zero'
+        }
+    },
+    unit_ids: {
+        type: [{
+            type: Number,
+            required: true,
+            min: 0,
+            max: MaxUnitType,
+            validate: {
+                validator: Number.isInteger,
+                message: 'Every unit ID must be an integer'
+            }
+        }],
+        validate: {
+            validator: isPopulated,
+            message: 'There must be at least one unit id in every Quantified Ingredient'
+        }
+    },
+    food_id: {
+        type: mongoose.Schema.ObjectId,
+        required: true
+    },
+    additional_desc: {
+        type: String,
+        required: false,
+        minlength: 1
+    }
+}, {_id: false}));
+
+Recipe.path('ingredient_sections').schema.path('ingredients').discriminator('FreeText', new mongoose.Schema({
+    description: {
+        type: String,
+        required: true,
+        minlength: 1
+    }
+}, {_id: false}));
+
 
 Recipe.virtual('exportable')
     .get(function () {
