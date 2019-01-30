@@ -41,7 +41,7 @@ app.use(session({
     rolling: true, // a session ID cookie is set on every response (resetting the expiration time)
     cookie: {
         httpOnly: true, // compliant clients will not reveal the cookie to client-side javascript
-        secure: process.env.NODE_ENV !== 'development', // only send cookies over https (except during development),
+        secure: false, // send cookies over http. This isn't a security issue because the NFS server enforces https.
         maxAge: 1000 * 60 * 30 // 30 minutes
     },
     // TODO: there has got to be a way to stub this in the test file
