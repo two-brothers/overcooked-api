@@ -9,6 +9,7 @@ schemes:
   - https
 
 paths: 'api/paths.yaml'
+cms: 'api/cms.yaml'
 recipes: 'api/recipes.yaml'
 food: 'api/food.yaml'
 auth: 'api/auth.yaml'

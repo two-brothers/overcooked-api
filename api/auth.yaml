@@ -3,7 +3,7 @@ GithubPath:
   get:
     tags:
       - Authentication
-    summary: Authenticate with GitHub account
+    summary: Authenticate with a GitHub account
     responses:
       304:
         description: >-

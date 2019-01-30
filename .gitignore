@@ -19,3 +19,6 @@ mochawesome-report
 
 # OAuth secrets
 auth/secrets
+
+# The CMS build
+static

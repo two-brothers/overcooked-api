@@ -23,7 +23,7 @@ router.use((req, res, next) => {
  * If successful, subsequent calls in the session (to any API) will have req.isAuthenticated() return true
  */
 router.get('/github', passport.authenticate('github'));
-router.get('/github/callback', passport.authenticate('github'), (req, res, next) => res.redirect('/'));
+router.get('/github/callback', passport.authenticate('github'), (req, res, next) => res.redirect('/cms'));
 
 /**
  * Return the profile of the authenticated user or null if there is no user

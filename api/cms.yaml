@@ -1,0 +1,6 @@
+# Load the CMS app
+CMSPath:
+  get:
+    tags:
+      - CMS
+    summary: Load the Content Management System

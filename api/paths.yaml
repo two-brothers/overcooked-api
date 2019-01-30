@@ -1,3 +1,7 @@
+# CMS
+/cms:
+  $ref: '#/cms/CMSPath'
+
 # Github authentication
 /auth/github:
   $ref: '#/auth/GithubPath'
