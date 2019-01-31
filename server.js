@@ -78,7 +78,7 @@ app.use('/auth', auth.route);
 app.use('/food', food.route);
 app.use('/recipes', recipes.route);
 app.get('/cms', (req, res) => res.sendFile(path.join(__dirname, 'static', 'index.html')));
-app.use(express.static(path.join(__dirname, 'static')));
+app.use('/cms', express.static(path.join(__dirname, 'static')));
 
 /*** API Documentation ***/
 
