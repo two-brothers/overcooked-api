@@ -98,11 +98,11 @@ RecipesByPage:
       The food items associated with the returned recipes are also included in the response.
       Requests with page values that are too high return empty lists for both `recipes` and `food`, and set `last_page` to `true`
     parameters:
-      name: page
-      in: path
-      required: true
-      description: The index of the requested page
-      type: number
+      - name: page
+        in: path
+        required: true
+        description: The index of the requested page
+        type: number
     responses:
       200:
         description: The list of recipes
