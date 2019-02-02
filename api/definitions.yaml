@@ -45,8 +45,9 @@ IngredientSection:
           - ingredient_type
         properties:
           ingredient_type:
-            type: string
-            enum: [Quantified, FreeText]
+            type: number
+            minimum: 0
+            maximum: 1
         discriminator:
           propertyName: ingredient_type
 
@@ -58,8 +59,9 @@ Quantified:
     - food_id
   properties:
     ingredient_type:
-      type: string
-      pattern: 'Quantified'
+      type: number
+      minimum: 0
+      maximum: 0
     amount:
       $ref: '#/definitions/Quantity'
     unit_ids:
@@ -75,8 +77,9 @@ FreeText:
     - description
   properties:
     ingredient_type:
-      type: string
-      pattern: 'FreeText'
+      type: number
+      minimum: 1
+      maximum: 1
     description:
       $ref: '#/definitions/NonEmptyString'
 

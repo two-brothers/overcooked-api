@@ -39,8 +39,15 @@ describe('Recipe Model', () => {
         // base the modifications off a valid Recipe object
         specification = JSON.parse(JSON.stringify(RecipesSample[0]));
         // the sample recipes have Food ID indices instead of Food IDs. Replace them with a valid (in structure) ID
-        specification.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
-            ingredient.food_id = validID
+        // they also store the ingredient type as integers (the way a client would see them) but our tests bypass
+        // the pre-save hook, which means we need to replace them with the magic strings directly
+        specification.ingredientSections.map(sections => sections.ingredients.map(ingredient => {
+            if (ingredient.ingredientType === 0) {
+                ingredient.foodId = validID;
+                ingredient.ingredientType = 'Quantified';
+            } else {
+                ingredient.ingredientType = 'FreeText';
+            }
         }));
     });
 

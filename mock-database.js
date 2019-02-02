@@ -28,7 +28,7 @@ class Database {
      * responds to malformed record ids) instead of returning null (for invalid, but well-formed ids)
      */
     static get A_MALFORMED_RECORD_ID() {
-        return 'A_MALFORMED_RECORD_ID'
+        return 'A_MALFORMED_RECORD_ID';
     }
 
     /**
@@ -57,7 +57,7 @@ class Database {
                 throw new Error(`Cannot update ${name} record ${record.id} because it is already removed`);
             }
             dbModel.updated[record.id] = record;
-        }
+        };
     }
 
     /**
@@ -68,7 +68,7 @@ class Database {
     static getRemoveFn(dbModel) {
         return (record) => {
             dbModel.removed[record.id] = record;
-        }
+        };
     }
 
     /**
@@ -77,11 +77,13 @@ class Database {
      * @param data the data in the record
      */
     static newRecord(dbModel, data) {
-        return Object.assign(
+        const record =  Object.assign(
             new dbModel.recordType(Database.getRecordUpdateFn(dbModel), Database.getRemoveFn(dbModel)),
             {id: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString()},
             deepClone(data)
         );
+        record.save();
+        return record;
     }
 
     /**
@@ -195,7 +197,7 @@ class Database {
                     const records = this.getAllRecords(modelName, true);
                     records.sort((a, b) => a.id < b.id);
                     return new MockQuery(records);
-                })
+                });
             });
     }
 }
@@ -228,8 +230,8 @@ class Record {
                     if (typeof property[key] === 'undefined')
                         delete property[key];
                     else
-                        Record.removeUndefined(property[key])
-                })
+                        Record.removeUndefined(property[key]);
+                });
         }
     }
 
@@ -288,7 +290,7 @@ const deepClone = (object) => {
         const clone = Object.assign({}, object);
         Object.getOwnPropertyNames(clone)
             .filter(name => {
-                clone[name] = deepClone(clone[name])
+                clone[name] = deepClone(clone[name]);
             });
         return clone;
     }

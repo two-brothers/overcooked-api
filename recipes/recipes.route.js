@@ -90,8 +90,9 @@ router.post('/', ensureAuth, (req, res, next) => {
             if (invalid_ids.length > 0)
                 return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
 
+            mapIngredientTypes(req.body.ingredientSections);
             return Recipe.create(req.body)
-                .then(record => res.wrap(record.exportable))
+                .then(record => res.wrap(record.exportable));
         })
         .catch(() => next({status: 500, message: 'Server Error: Unable to create the Recipe'}));
 });
@@ -113,9 +114,9 @@ router.get('/:id', (req, res, next) => {
                 recipe.ingredient_sections
                     .map(section => section.ingredients)
                     .reduce((a, b) => a.concat(b))
-                    .filter(ingredient => ingredient.ingredient_type === 'Quantified')
-                    .map(ingredient => ingredient.food_id)
-                    .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
+                    .filter(ingredient => ingredient.ingredientType === 0)
+                    .map(ingredient => ingredient.foodId)
+                    .filter((foodId, idx, arr) => arr.indexOf(foodId) === idx);
 
             Promise.all(food_ids.map(id =>
                 // ignore any food items not in the database
@@ -127,7 +128,7 @@ router.get('/:id', (req, res, next) => {
                 .then(foods => res.wrap({
                     recipe: recipe,
                     food: foods
-                }))
+                }));
         })
         .catch(err => err === RecordNotFound ?
             next() : // let the 404 handler catch it
@@ -199,8 +200,8 @@ router.put('/:id', ensureAuth, (req, res, next) => {
             req.body.ingredient_sections
                 .map(section => section.ingredients)
                 .reduce((a, b) => a.concat(b))
-                .filter(ingredient => ingredient.ingredient_type === 'Quantified')
-                .map(ingredient => ingredient.food_id)
+                .filter(ingredient => ingredient.ingredientType === 0)
+                .map(ingredient => ingredient.foodId)
                 .filter((food, idx, arr) => arr.indexOf(food) === idx)
                 .map(id => // save the invalid ids
                     Food.findOne({_id: id})
@@ -213,6 +214,9 @@ router.put('/:id', ensureAuth, (req, res, next) => {
             if (invalid_ids.length > 0)
                 return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
 
+            if (req.body.ingredientSections) {
+                mapIngredientTypes(req.body.ingredientSections);
+            }
             return Recipe.findOne({_id: req.params.id})
                 .catch(() => Promise.reject(RecordNotFound))
                 .then(record => record ? record : Promise.reject(RecordNotFound))
@@ -228,7 +232,7 @@ router.put('/:id', ensureAuth, (req, res, next) => {
                     return recipe;
                 })
                 .then(recipe => recipe.save())
-                .then(() => res.status(204).send())
+                .then(() => res.status(204).send());
         })
         .catch(err => err === RecordNotFound ?
             next() : // let the 404 handler catch it
@@ -278,9 +282,9 @@ router.get('/at/:page', (req, res, next) => {
                     .reduce((a, b) => a.concat(b))
                     .map(section => section.ingredients)
                     .reduce((a, b) => a.concat(b))
-                    .filter(ingredient => ingredient.ingredient_type === 'Quantified')
-                    .map(ingredient => ingredient.food_id)
-                    .filter((food_id, idx, arr) => arr.indexOf(food_id) === idx);
+                    .filter(ingredient => ingredient.ingredientType === 0)
+                    .map(ingredient => ingredient.foodId)
+                    .filter((foodId, idx, arr) => arr.indexOf(foodId) === idx);
 
             Promise.all(food_ids.map(id =>
                 // ignore any food items not in the database
@@ -292,10 +296,20 @@ router.get('/at/:page', (req, res, next) => {
                 .then(foods => res.wrap({
                     recipes: recipes,
                     food: foods,
-                    last_page: last_page
-                }))
+                    lastPage: lastPage
+                }));
         })
         .catch(() => next({status: 500, message: 'Server Error: Unable to retrieve the specified recipes'}));
 });
+
+/**
+ * Convert the ingredientTypes to the corresponding magic strings used as DB discriminators
+ * Note: this modifies the ingredient sections in place
+ */
+const mapIngredientTypes = (sections) => {
+    sections.map(section => section.ingredients.map(ingredient => {
+        ingredient.ingredientType = ingredient.ingredientType === 0 ? 'Quantified' : 'FreeText';
+    }));
+};
 
 module.exports = router;

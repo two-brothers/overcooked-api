@@ -8,15 +8,14 @@ NUM_RECIPES = 26 # Arbitrary
 
 def createIngredient():
   ing = {}
-  if randint(0,1) == 0:
-    ing['ingredient_type'] = 'Quantified'
+  ing['ingredientType'] = randint(0,1)
+  if ing['ingredientType'] == 0: # Quantified
     ing['amount'] = randint(3,10)
     ing['unit_ids'] = [randint(0, NUM_UNIT_TYPES - 1) for i in range(randint(1,2))]
     ing['food_id'] = randint(0, FOOD_PAGE_SIZE - 1)  # Should be replaced by the ID of the corresponding food database record
     if randint(0,1) == 0:
-      ing['additional_desc'] = 'additional description'
-  else:
-    ing['ingredient_type'] = 'FreeText'
+      ing['additionalDesc'] = 'additional description'
+  else: # FreeText
     ing['description'] = 'Free text description'
   return ing
 

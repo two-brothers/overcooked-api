@@ -37,24 +37,30 @@ const foodIDScenarios = [
     new simple('is a malformed food id', MockDatabase.A_MALFORMED_RECORD_ID, false),
     new simple('is a valid id', MockDatabase.A_VALID_RECORD_ID, true)
 ];
+const QUANTIFIED_ING_TYPE = 0;
+const FREETEXT_ING_TYPE = 1;
+
 // the scenarios for Quantified Ingredients
 const ingredientScenarios = object([
-    new dependent('ingredient_type', [new simple('is "Quantified"', 'Quantified', true)]),
+    new dependent('ingredientType', [new simple(`is ${QUANTIFIED_ING_TYPE} (Quantified)`, QUANTIFIED_ING_TYPE, true)]),
     new dependent('amount', presence.required(finitePositiveNumber)),
     new dependent('unit_ids', simplifiedNonEmptyArray(presence.required(boundedInteger(0, MaxUnitType)))),
     new dependent('food_id', presence.required(foodIDScenarios)),
     new dependent('additional_desc', presence.optional(nonEmptyString))
 ]) // the scenarios for FreeText Ingredients
-.concat(object([
-    new dependent('ingredient_type', [new simple('is "FreeText"', 'FreeText', true)]),
-    new dependent('description', presence.required(nonEmptyString))
-]))
-// a scenario for an unknown ingredient type
-.concat(object([
-    new dependent('ingredient_type', [
-        new simple('is "AnotherType"', 'AnotherType', false)
-    ])
-]));
+    .concat(object([
+        new dependent('ingredientType', [new simple(`is ${FREETEXT_ING_TYPE} (FreeText)`, FREETEXT_ING_TYPE, true)]),
+        new dependent('description', presence.required(nonEmptyString))
+    ]))
+    // a scenario for an unknown ingredient type
+    .concat(object([
+        new dependent('ingredientType', [new simple('is invalid type', 2, false)])
+    ]))
+    // a scenario for a string ingredient type
+    .concat(object([
+        new dependent('ingredientType', [new simple('is "Quantified"', 'Quantified', false)])
+    ]));
+
 const ingredientSectionsScenarios = simplifiedNonEmptyArray(object([
     new dependent('heading', presence.optional(nonEmptyString)),
     new dependent('ingredients', presence.required(simplifiedNonEmptyArray(ingredientScenarios)))
@@ -79,11 +85,11 @@ describe('/recipes', () => {
 
         return Promise.all(database.getAllRecords(DBStructure.models.Food))
             .then(foodRecords => {
-                recipeSamples.map(recipe => recipe.ingredient_sections.map(sections => sections.ingredients.map(ingredient => {
-                    if (ingredient.ingredient_type === 'Quantified') {
-                        ingredient.food_id = foodRecords[ingredient.food_id].id;
+                recipeSamples.map(recipe => recipe.ingredientSections.map(sections => sections.ingredients.map(ingredient => {
+                    if (ingredient.ingredientType === QUANTIFIED_ING_TYPE) {
+                        ingredient.foodId = foodRecords[ingredient.foodId].id;
                     }
-                })))
+                })));
             })
             .then(() => database.addModel(Recipe, DBStructure.models.Recipe, recipeSamples, DBStructure.records.Recipe))
             .then(() => {
@@ -121,7 +127,6 @@ describe('/recipes', () => {
                         .then(res => res.status.should.equal(400))
                 );
 
-
             /**
              * Sends the value of 'data' to the listener at 'endpoint' and confirms that
              * the endpoint responds with:
@@ -152,6 +157,7 @@ describe('/recipes', () => {
 
             beforeEach(() =>
                 database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                    .then(recipe => recipe.exportable)
                     .then(recipe => {
                         data = Object.assign({}, recipe);
                         // remove the properties set by the server
@@ -222,22 +228,22 @@ describe('/recipes', () => {
 
                 before(() => {
                     database.reset();
-                    database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                    return database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                        .then(record => record.exportable)
                         .then(record => {
                             // ensure the record has both ingredient types to exercise all code paths
                             const ingTypes = record.ingredient_sections
                                 .map(section => section.ingredients)
                                 .reduce((a, b) => a.concat(b))
-                                .map(ingredient => ingredient.ingredient_type);
-                            ingTypes.includes('Quantified').should.equal(true);
-                            ingTypes.includes('FreeText').should.equal(true);
-
+                                .map(ingredient => ingredient.ingredientType);
+                            ingTypes.includes(QUANTIFIED_ING_TYPE).should.equal(true);
+                            ingTypes.includes(FREETEXT_ING_TYPE).should.equal(true);
                             recipeRecord = record;
                         })
                         .then(() => Promise.all(database.getAllRecords(DBStructure.models.Food)))
                         .then(foods => {
                             foodRecords = foods;
-                        })
+                        });
                 });
 
                 beforeEach(() => {
@@ -270,6 +276,7 @@ describe('/recipes', () => {
 
             beforeEach(() =>
                 database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                    .then(record => record.exportable)
                     .then(record => {
                         recipe = record;
                         update = {};
@@ -327,6 +334,7 @@ describe('/recipes', () => {
                         it('should update the database appropriately', () =>
                             send
                                 .then(() => database.getRecord(DBStructure.models.Recipe, recipe.id))
+                                .then(updated => updated.exportable)
                                 .then(updated => {
                                     updated.last_updated.should.not.be.undefined;
                                     should.equal(typeof updated.last_updated, 'number');
@@ -464,14 +472,15 @@ describe('/recipes', () => {
             numPages = Math.ceil(recipePromises.length / ITEMS_PER_PAGE);
             remainder = recipePromises.length % ITEMS_PER_PAGE;
             return Promise.all(recipePromises)
+                .then(recipes => recipes.map(recipe => recipe.exportable))
                 .then(recipes => {
                     sortedRecipes = recipes;
                     sortedRecipes.sort(compareTimestamp);
                 })
                 .then(() => Promise.all(foodPromises))
                 .then(food => {
-                    foodRecords = food;
-                })
+                    foodRecords = food.map(item => item.exportable);
+                });
         });
 
         beforeEach(() => {
@@ -481,7 +490,7 @@ describe('/recipes', () => {
         const expectBadGetRequest = () => {
             it('should return a "Bad Request" error', () =>
                 request.get(endpoint).then(res => res.status.should.equal(400))
-            )
+            );
         };
 
         const expectPageToBeConsistent = () => {
@@ -493,9 +502,9 @@ describe('/recipes', () => {
                         res.body.data.recipes
                             .map(recipe => recipe.ingredient_sections).reduce(flatten)
                             .map(section => section.ingredients).reduce(flatten)
-                            .filter(ingredient => ingredient.ingredient_type === 'Quantified')
-                            .map(ingredient => ingredient.food_id)
-                            .map(id => foodIds.includes(id).should.equal(true))
+                            .filter(ingredient => ingredient.ingredientType === QUANTIFIED_ING_TYPE)
+                            .map(ingredient => ingredient.foodId)
+                            .map(id => foodIds.includes(id).should.equal(true));
                     })
             );
 
@@ -506,12 +515,12 @@ describe('/recipes', () => {
                         const requiredFoods = res.body.data.recipes
                             .map(recipe => recipe.ingredient_sections).reduce(flatten)
                             .map(section => section.ingredients).reduce(flatten)
-                            .filter(ingredient => ingredient.ingredient_type === 'Quantified')
-                            .map(ingredient => ingredient.food_id);
+                            .filter(ingredient => ingredient.ingredientType === QUANTIFIED_ING_TYPE)
+                            .map(ingredient => ingredient.foodId);
                         res.body.data.food.map(food =>
                             requiredFoods.includes(food.id).should.equal(true)
-                        )
-                    })
+                        );
+                    });
             });
 
             it('should not return duplicate food items', () =>
@@ -525,7 +534,7 @@ describe('/recipes', () => {
                     .then(res => res.body.data.food)
                     .then(items => items.map(food =>
                         food.should.deep.equal(foodRecords.filter(record => record.id === food.id)[0])
-                    ))
+                    ));
             });
         };
 
@@ -591,7 +600,7 @@ describe('/recipes', () => {
 
             it('should indicate that it is the last page', () => {
                 request.get(endpoint)
-                    .then(res => res.body.data.last_page.should.equal(true))
+                    .then(res => res.body.data.lastPage.should.equal(true));
             });
 
             expectPageToBeConsistent();
@@ -621,7 +630,7 @@ describe('/recipes', () => {
         describe('page is too high', () => {
             beforeEach(() => {
                 const pageIdx = Math.ceil(database.getAllRecords(DBStructure.models.Recipe).length / ITEMS_PER_PAGE) + 1;
-                endpoint = `${endpoint}/${pageIdx}`
+                endpoint = `${endpoint}/${pageIdx}`;
             });
 
             it('should return an OK response', () =>
