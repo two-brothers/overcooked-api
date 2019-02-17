@@ -69,7 +69,7 @@ const methodScenarios = simplifiedNonEmptyArray(nonEmptyString);
 const referenceUrlScenarios = nonEmptyString;
 const imageUrlScenarios = nonEmptyString;
 
-describe('/recipes', () => {
+describe('/v1/recipes', () => {
     let server;
     let database;
     let authenticated;
@@ -103,7 +103,7 @@ describe('/recipes', () => {
     let request;
 
     beforeEach(() => {
-        endpoint = '/recipes';
+        endpoint = '/v1/recipes';
         request = chai.request(server);
         database.reset();
     });

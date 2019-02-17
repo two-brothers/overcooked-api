@@ -28,7 +28,7 @@ const conversionsScenarios = simplifiedNonEmptyArray(object([
     new dependent('ratio', presence.required(finitePositiveNumber))
 ]));
 
-describe('/food', () => {
+describe('/v1/food', () => {
     let server;
     let database;
     let authenticated;
@@ -49,7 +49,7 @@ describe('/food', () => {
     let request;
 
     beforeEach(() => {
-        endpoint = '/food';
+        endpoint = '/v1/food';
         request = chai.request(server);
         database.reset();
     });

@@ -73,16 +73,17 @@ passport.deserializeUser(auth.deserialise);
 
 /*** ROUTES ***/
 
-app.get('/', (req, res, next) => res.redirect('/api'));
-app.use('/auth', auth.route);
-app.use('/food', food.route);
-app.use('/recipes', recipes.route);
+const currentVersion = `/v1`;
+app.get('/', (req, res, next) => res.redirect(`${currentVersion}/api`));
+app.use(`${currentVersion}/auth`, auth.route);
+app.use(`${currentVersion}/food`, food.route);
+app.use(`${currentVersion}/recipes`, recipes.route);
 app.get('/cms', (req, res) => res.sendFile(path.join(__dirname, 'static', 'index.html')));
 app.use('/cms', express.static(path.join(__dirname, 'static')));
 
 /*** API Documentation ***/
 
-app.use('/api', swaggerUI.serve, swaggerUI.setup(api.json));
+app.use(`${currentVersion}/api`, swaggerUI.serve, swaggerUI.setup(api.json));
 
 /*** ERROR HANDLING ***/
 

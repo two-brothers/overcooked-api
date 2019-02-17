@@ -3,37 +3,37 @@
   $ref: '#/cms/CMSPath'
 
 # Github authentication
-/auth/github:
+/v1/auth/github:
   $ref: '#/auth/GithubPath'
 
 # Return the active user
-/auth/whoami:
+/v1/auth/whoami:
   $ref: '#/auth/WhoAmIPath'
 
 # Log the user out of the current session
-/auth/logout:
+/v1/auth/logout:
   $ref: '#/auth/LogoutPath'
 
 # CREATE a recipe
-/recipes:
+/v1/recipes:
   $ref: '#/recipes/RecipesPath'
 
 # READ, UPDATE or DELETE a recipe
-/recipes/{id}:
+/v1/recipes/{id}:
   $ref: '#/recipes/RecipesByIdPath'
 
 # READ a list of recipes
-/recipes/at/{page}:
+/v1/recipes/at/{page}:
   $ref: '#/recipes/RecipesByPage'
 
 # CREATE a food record
-/food:
+/v1/food:
   $ref: '#/food/FoodPath'
 
 # READ, UPDATE or DELETE a food record
-/food/{id}:
+/v1/food/{id}:
   $ref: '#/food/FoodRecordByIdPath'
 
 # READ a list of food items
-/food/at/{page}:
+/v1/food/at/{page}:
   $ref: '#/food/FoodRecordsByPage'
