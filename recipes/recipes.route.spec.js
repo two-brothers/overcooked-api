@@ -12,7 +12,7 @@ const Enumerator = require('../bdd-enumerator/module');
 const EnumeratorUtil = require('../enumerator-utility');
 const Food = require('../food/module').model;
 const FoodSample = require('../food/module').sample;
-const MaxUnitType = require('../food/module').unit_types.length - 1;
+const MaxUnitType = require('../food/module').unitTypes.length - 1;
 const Recipe = require('./recipe.model');
 const RecipesSample = require('./recipe.sample');
 
@@ -33,7 +33,7 @@ const cookTimeScenarios = finitePositiveNumber;
 const foodIDScenarios = [
     new simple('is an integer', 1, false),
     new simple('is an empty string', '', false),
-    new simple('is not a valid food id', 'invalid_id', false),
+    new simple('is not a valid food id', 'invalidId', false),
     new simple('is a malformed food id', MockDatabase.A_MALFORMED_RECORD_ID, false),
     new simple('is a valid id', MockDatabase.A_VALID_RECORD_ID, true)
 ];
@@ -44,9 +44,9 @@ const FREETEXT_ING_TYPE = 1;
 const ingredientScenarios = object([
     new dependent('ingredientType', [new simple(`is ${QUANTIFIED_ING_TYPE} (Quantified)`, QUANTIFIED_ING_TYPE, true)]),
     new dependent('amount', presence.required(finitePositiveNumber)),
-    new dependent('unit_ids', simplifiedNonEmptyArray(presence.required(boundedInteger(0, MaxUnitType)))),
-    new dependent('food_id', presence.required(foodIDScenarios)),
-    new dependent('additional_desc', presence.optional(nonEmptyString))
+    new dependent('unitIds', simplifiedNonEmptyArray(presence.required(boundedInteger(0, MaxUnitType)))),
+    new dependent('foodId', presence.required(foodIDScenarios)),
+    new dependent('additionalDesc', presence.optional(nonEmptyString))
 ]) // the scenarios for FreeText Ingredients
     .concat(object([
         new dependent('ingredientType', [new simple(`is ${FREETEXT_ING_TYPE} (FreeText)`, FREETEXT_ING_TYPE, true)]),
@@ -146,10 +146,10 @@ describe('/recipes', () => {
                             res.body.data.id.length.should.be.greaterThan(0);
                             delete res.body.data.id;
 
-                            res.body.data.last_updated.should.not.be.undefined;
-                            should.equal(typeof res.body.data.last_updated, 'number');
-                            res.body.data.last_updated.should.be.lte(Date.now());
-                            delete res.body.data.last_updated;
+                            res.body.data.lastUpdated.should.not.be.undefined;
+                            should.equal(typeof res.body.data.lastUpdated, 'number');
+                            res.body.data.lastUpdated.should.be.lte(Date.now());
+                            delete res.body.data.lastUpdated;
 
                             res.body.data.should.deep.equal(data);
                         })
@@ -162,7 +162,7 @@ describe('/recipes', () => {
                         data = Object.assign({}, recipe);
                         // remove the properties set by the server
                         delete data.id;
-                        delete data.last_updated;
+                        delete data.lastUpdated;
                     })
             );
 
@@ -175,14 +175,14 @@ describe('/recipes', () => {
                 new dependent('makes', presence.optional(makesScenarios)),
                 new dependent('serves', presence.optional(servesScenarios))
             );
-            const prepTime = property('prep_time', baseObjFn, presence.required(prepTimeScenarios));
-            const cookTime = property('cook_time', baseObjFn, presence.required(cookTimeScenarios));
-            const ingredient_sections = property('ingredient_sections', baseObjFn, presence.required(ingredientSectionsScenarios));
+            const prepTime = property('prepTime', baseObjFn, presence.required(prepTimeScenarios));
+            const cookTime = property('cookTime', baseObjFn, presence.required(cookTimeScenarios));
+            const ingredientSections = property('ingredientSections', baseObjFn, presence.required(ingredientSectionsScenarios));
             const method = property('method', baseObjFn, presence.required(methodScenarios));
-            const reference = property('reference_url', baseObjFn, presence.required(referenceUrlScenarios));
-            const image = property('image_url', baseObjFn, presence.required(imageUrlScenarios));
+            const reference = property('referenceUrl', baseObjFn, presence.required(referenceUrlScenarios));
+            const image = property('imageUrl', baseObjFn, presence.required(imageUrlScenarios));
 
-            [title, makesAndServes, prepTime, cookTime, ingredient_sections, method, reference, image]
+            [title, makesAndServes, prepTime, cookTime, ingredientSections, method, reference, image]
                 .map(scenarios => Enumerator.enumerate(scenarios, expectNewRecipeResponse, expectBadPostRequest));
 
         });
@@ -232,7 +232,7 @@ describe('/recipes', () => {
                         .then(record => record.exportable)
                         .then(record => {
                             // ensure the record has both ingredient types to exercise all code paths
-                            const ingTypes = record.ingredient_sections
+                            const ingTypes = record.ingredientSections
                                 .map(section => section.ingredients)
                                 .reduce((a, b) => a.concat(b))
                                 .map(ingredient => ingredient.ingredientType);
@@ -291,7 +291,7 @@ describe('/recipes', () => {
                 const unknownRecordTest = () => {
                     describe('specified id is invalid', () => {
                         beforeEach(() => {
-                            endpoint = `${endpoint}/invalid_id`;
+                            endpoint = `${endpoint}/invalidId`;
                         });
 
                         it('should return a NotFound error', () =>
@@ -336,10 +336,10 @@ describe('/recipes', () => {
                                 .then(() => database.getRecord(DBStructure.models.Recipe, recipe.id))
                                 .then(updated => updated.exportable)
                                 .then(updated => {
-                                    updated.last_updated.should.not.be.undefined;
-                                    should.equal(typeof updated.last_updated, 'number');
-                                    updated.last_updated.should.be.gte(expected.last_updated);
-                                    expected.last_updated = updated.last_updated;
+                                    updated.lastUpdated.should.not.be.undefined;
+                                    should.equal(typeof updated.lastUpdated, 'number');
+                                    updated.lastUpdated.should.be.gte(expected.lastUpdated);
+                                    expected.lastUpdated = updated.lastUpdated;
                                     updated.should.deep.equal(expected);
                                 })
                         );
@@ -365,14 +365,14 @@ describe('/recipes', () => {
                     new dependent('makes', presence.optional(makesScenarios)),
                     new dependent('serves', presence.optional(servesScenarios))
                 );
-                const prepTime = property('prep_time', baseObjFn, presence.optional(prepTimeScenarios));
-                const cookTime = property('cook_time', baseObjFn, presence.optional(cookTimeScenarios));
-                const ingredient_sections = property('ingredient_sections', baseObjFn, presence.optional(ingredientSectionsScenarios));
+                const prepTime = property('prepTime', baseObjFn, presence.optional(prepTimeScenarios));
+                const cookTime = property('cookTime', baseObjFn, presence.optional(cookTimeScenarios));
+                const ingredientSections = property('ingredientSections', baseObjFn, presence.optional(ingredientSectionsScenarios));
                 const method = property('method', baseObjFn, presence.optional(methodScenarios));
-                const reference = property('reference_url', baseObjFn, presence.optional(referenceUrlScenarios));
-                const image = property('image_url', baseObjFn, presence.optional(imageUrlScenarios));
+                const reference = property('referenceUrl', baseObjFn, presence.optional(referenceUrlScenarios));
+                const image = property('imageUrl', baseObjFn, presence.optional(imageUrlScenarios));
 
-                [title, makesAndServes, prepTime, cookTime, ingredient_sections, method, reference, image]
+                [title, makesAndServes, prepTime, cookTime, ingredientSections, method, reference, image]
                     .map(scenarios => Enumerator.enumerate(scenarios, validRecipeTests, invalidRecipeTests));
             });
 
@@ -398,7 +398,7 @@ describe('/recipes', () => {
 
                 describe('specified id is invalid', () => {
                     beforeEach(() => {
-                        endpoint = `${endpoint}/invalid_id`;
+                        endpoint = `${endpoint}/invalidId`;
                     });
 
                     it('should return a NotFound error', () =>
@@ -464,7 +464,7 @@ describe('/recipes', () => {
 
         let numPages, remainder, sortedRecipes, foodRecords;
         // reverse chronological order
-        const compareTimestamp = (a, b) => (a.last_updated < b.last_updated ? 1 : -1);
+        const compareTimestamp = (a, b) => (a.lastUpdated < b.lastUpdated ? 1 : -1);
         before(() => {
             database.reset();
             const recipePromises = database.getAllRecords(DBStructure.models.Recipe);
@@ -500,7 +500,7 @@ describe('/recipes', () => {
                         const flatten = (a, b) => a.concat(b);
                         const foodIds = res.body.data.food.map(food => food.id);
                         res.body.data.recipes
-                            .map(recipe => recipe.ingredient_sections).reduce(flatten)
+                            .map(recipe => recipe.ingredientSections).reduce(flatten)
                             .map(section => section.ingredients).reduce(flatten)
                             .filter(ingredient => ingredient.ingredientType === QUANTIFIED_ING_TYPE)
                             .map(ingredient => ingredient.foodId)
@@ -513,7 +513,7 @@ describe('/recipes', () => {
                     .then(res => {
                         const flatten = (a, b) => a.concat(b);
                         const requiredFoods = res.body.data.recipes
-                            .map(recipe => recipe.ingredient_sections).reduce(flatten)
+                            .map(recipe => recipe.ingredientSections).reduce(flatten)
                             .map(section => section.ingredients).reduce(flatten)
                             .filter(ingredient => ingredient.ingredientType === QUANTIFIED_ING_TYPE)
                             .map(ingredient => ingredient.foodId);
@@ -541,7 +541,7 @@ describe('/recipes', () => {
 
         describe('"page" is a string', () => {
             beforeEach(() => {
-                endpoint = `${endpoint}/arbitrary_string`;
+                endpoint = `${endpoint}/arbitraryString`;
             });
             expectBadGetRequest();
         });
@@ -577,7 +577,7 @@ describe('/recipes', () => {
 
             it('should not be the last page', () =>
                 request.get(endpoint)
-                    .then(res => res.body.data.last_page.should.equal(false))
+                    .then(res => res.body.data.lastPage.should.equal(false))
             );
 
             expectPageToBeConsistent();
@@ -617,7 +617,7 @@ describe('/recipes', () => {
                     request.get(`${endpoint}/${pageIdx}`)
                         .then(res => {
                             res.status.should.equal(200);
-                            res.body.data.last_page.should.equal(pageIdx === numPages - 1);
+                            res.body.data.lastPage.should.equal(pageIdx === numPages - 1);
                             res.body.data.recipes.length.should.equal(pageIdx === numPages - 1 ? remainder : ITEMS_PER_PAGE);
                             return res.body.data.recipes;
                         })
@@ -645,8 +645,8 @@ describe('/recipes', () => {
                 request.get(endpoint).then(res => res.body.data.food.should.deep.equal([]))
             );
 
-            it('should set last_page to true', () =>
-                request.get(endpoint).then(res => res.body.data.last_page.should.equal(true))
+            it('should set lastPage to true', () =>
+                request.get(endpoint).then(res => res.body.data.lastPage.should.equal(true))
             );
 
         });

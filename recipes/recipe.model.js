@@ -2,7 +2,7 @@
 
 const mongoose = require('mongoose');
 
-const MaxUnitType = require('../food/module').unit_types.length - 1;
+const MaxUnitType = require('../food/module').unitTypes.length - 1;
 
 const isPositiveNumber = v => v > 0;
 const isPopulated = arr => arr.length > 0;
@@ -10,7 +10,7 @@ const isPopulated = arr => arr.length > 0;
 /**
  * Each ingredient can have one of two different structures, depending on the ingredient type.
  */
-const options = {discriminatorKey: 'ingredient_type', _id: false, strict: true};
+const options = {discriminatorKey: 'ingredientType', _id: false, strict: true};
 const IngredientSchema = new mongoose.Schema({}, options);
 
 const Recipe = new mongoose.Schema({
@@ -43,23 +43,23 @@ const Recipe = new mongoose.Schema({
             message: 'makes should be defined iff serves is undefined and must be greater than zero'
         }
     },
-    prep_time: {
+    prepTime: {
         type: Number,
         required: true,
         validate: {
             validator: isPositiveNumber,
-            message: 'prep_time must be greater than zero'
+            message: 'prepTime must be greater than zero'
         }
     },
-    cook_time: {
+    cookTime: {
         type: Number,
         required: true,
         validate: {
             validator: isPositiveNumber,
-            message: 'cook_time must be greater than zero'
+            message: 'cookTime must be greater than zero'
         }
     },
-    ingredient_sections: {
+    ingredientSections: {
         type: [{
             _id: false,
             heading: {
@@ -71,7 +71,7 @@ const Recipe = new mongoose.Schema({
                 type: [IngredientSchema],
                 validate: {
                     validator: ingredients => ingredients.length > 0 &&
-                        ingredients.map(ingredient => ['Quantified', 'FreeText'].includes(ingredient.ingredient_type))
+                        ingredients.map(ingredient => ['Quantified', 'FreeText'].includes(ingredient.ingredientType))
                             .reduce((a, b) => a && b, true),
                     message: 'There must be at least one ingredient in every ingredient section, ' +
                         'and all ingredient types must be either "Quantified" or "FreeText"'
@@ -92,18 +92,18 @@ const Recipe = new mongoose.Schema({
             message: 'There must be at least one step in the method, and all steps must be non-empty strings'
         }
     },
-    reference_url: {
+    referenceUrl: {
         type: String,
         required: true
     },
-    image_url: {
+    imageUrl: {
         type: String,
         required: true
     }
 }, {timestamps: true});
 
 
-Recipe.path('ingredient_sections').schema.path('ingredients').discriminator('Quantified', new mongoose.Schema({
+Recipe.path('ingredientSections').schema.path('ingredients').discriminator('Quantified', new mongoose.Schema({
     amount: {
         type: Number,
         required: true,
@@ -112,7 +112,7 @@ Recipe.path('ingredient_sections').schema.path('ingredients').discriminator('Qua
             message: 'ingredient amount must be greater than zero'
         }
     },
-    unit_ids: {
+    unitIds: {
         type: [{
             type: Number,
             required: true,
@@ -128,18 +128,18 @@ Recipe.path('ingredient_sections').schema.path('ingredients').discriminator('Qua
             message: 'There must be at least one unit id in every Quantified Ingredient'
         }
     },
-    food_id: {
+    foodId: {
         type: mongoose.Schema.ObjectId,
         required: true
     },
-    additional_desc: {
+    additionalDesc: {
         type: String,
         required: false,
         minlength: 1
     }
 }, {_id: false}));
 
-Recipe.path('ingredient_sections').schema.path('ingredients').discriminator('FreeText', new mongoose.Schema({
+Recipe.path('ingredientSections').schema.path('ingredients').discriminator('FreeText', new mongoose.Schema({
     description: {
         type: String,
         required: true,
@@ -150,19 +150,19 @@ Recipe.path('ingredient_sections').schema.path('ingredients').discriminator('Fre
 Recipe.virtual('exportable')
     .get(function () {
         // Replace the 'Quantified' and 'FreeText' ingredient types with 0 and 1 respectively
-        const ingSections = this.ingredient_sections.map(section => Object.assign(
+        const ingSections = this.ingredientSections.map(section => Object.assign(
             section.heading ? {heading: section.heading} : {},
             {
-                ingredients: section.ingredients.map(ingredient => ingredient.ingredient_type === 'Quantified' ?
+                ingredients: section.ingredients.map(ingredient => ingredient.ingredientType === 'Quantified' ?
                     {
-                        ingredient_type: 0,
+                        ingredientType: 0,
                         amount: ingredient.amount,
-                        unit_ids: ingredient.unit_ids,
-                        food_id: ingredient.food_id,
-                        additional_desc: ingredient.additional_desc
+                        unitIds: ingredient.unitIds,
+                        foodId: ingredient.foodId,
+                        additionalDesc: ingredient.additionalDesc
                     } :
                     {
-                        ingredient_type: 1,
+                        ingredientType: 1,
                         description: ingredient.description
                     }
                 )
@@ -173,13 +173,13 @@ Recipe.virtual('exportable')
             {
                 'id': this._id.toString(),
                 'title': this.title,
-                'prep_time': this.prep_time,
-                'cook_time': this.cook_time,
-                'ingredient_sections': ingSections,
+                'prepTime': this.prepTime,
+                'cookTime': this.cookTime,
+                'ingredientSections': ingSections,
                 'method': this.method,
-                'reference_url': this.reference_url,
-                'image_url': this.image_url,
-                'last_updated': this.updatedAt.getTime()
+                'referenceUrl': this.referenceUrl,
+                'imageUrl': this.imageUrl,
+                'lastUpdated': this.updatedAt.getTime()
             },
             this.serves === undefined ? {makes: this.makes} : {serves: this.serves}
         );

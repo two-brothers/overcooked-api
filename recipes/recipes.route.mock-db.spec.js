@@ -16,7 +16,7 @@ class RecipeRecord extends MockRecord {
         super(updateRecordFn, removeRecordFn);
         // to avoid every record in a batch upload having the same timestamp,
         // pick a random time within the last 5 seconds
-        this.last_updated = Date.now() - Math.floor(Math.random() * 5000);
+        this.lastUpdated = Date.now() - Math.floor(Math.random() * 5000);
     }
 
     save() {
@@ -38,7 +38,7 @@ class RecipeRecord extends MockRecord {
     }
 
     get updatedAt() {
-        return this.last_updated;
+        return this.lastUpdated;
     }
 }
 

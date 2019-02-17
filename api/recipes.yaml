@@ -52,7 +52,7 @@ RecipesByIdPath:
       - Recipes
     summary: Change the specified recipe
     description: In this version of the API, you must replace entire top level objects.
-      eg. to update a particular ingredient, you need to update the entire ingredients_section object.
+      eg. to update a particular ingredient, you need to update the entire ingredientsSection object.
     parameters:
       - $ref: '#/recipes/RecipeIDParameter'
       - name: recipe
@@ -94,9 +94,9 @@ RecipesByPage:
       - Recipes
     summary: Get the set of recipes and required food records at the given page number
     description: The recipes are sorted by the date they were last modified (newest first).
-      They can be requested in batches of ten, indexed by the page number. The final page has `last_page` set to `true`
+      They can be requested in batches of ten, indexed by the page number. The final page has `lastPage` set to `true`
       The food items associated with the returned recipes are also included in the response.
-      Requests with page values that are too high return empty lists for both `recipes` and `food`, and set `last_page` to `true`
+      Requests with page values that are too high return empty lists for both `recipes` and `food`, and set `lastPage` to `true`
     parameters:
       - name: page
         in: path
@@ -117,7 +117,7 @@ RecipesByPage:
               type: array
               items:
                 $ref: '#/definitions/Food'
-            last_page:
+            lastPage:
               type: boolean
       500:
         $ref: '#/errors/UnexpectedServerErrorResponse'

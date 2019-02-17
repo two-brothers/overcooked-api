@@ -1,6 +1,5 @@
 const Food = require('./food.model');
-const MaxUnitType = require('./unit_types').length - 1;
-
+const MaxUnitType = require('./unitTypes').length - 1;
 const FoodSample = require('./food.sample');
 const Enumerator = require('../bdd-enumerator/module');
 const EnumeratorUtil = require('../enumerator-utility');
@@ -46,7 +45,7 @@ describe('Food Model', () => {
     const conversions = property('conversions', baseObjFn,
         presence.required(simplifiedNonEmptyArray(
             Enumerator.scenario.object([
-                new dependent('unit_id', presence.required(allowNumericStrings(boundedInteger(0, MaxUnitType)))),
+                new dependent('unitId', presence.required(allowNumericStrings(boundedInteger(0, MaxUnitType)))),
                 new dependent('ratio', presence.required(allowNumericStrings(finitePositiveNumber)))
             ])
         ))

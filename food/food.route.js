@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const Food = require('./food.model');
-const UnitTypes = require('./unit_types');
+const UnitTypes = require('./unitTypes');
 const wrapper = require('../response-wrapper');
 const VLD = require('../request-validator');
 const auth = require('../auth/module');
@@ -34,8 +34,8 @@ router.post('/', ensureAuth, (req, res, next) => {
         VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string') ||
         VLD.required(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions must be a non-empty array') ||
         req.body.conversions.reduce((error, conversion, convIdx) => error || (
-            VLD.required(conversion.unit_id, VLD.isBoundedInt(0, maxUnitType),
-                `Food conversions[${convIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
+            VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType),
+                `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`) ||
             VLD.required(conversion.ratio, VLD.isPositiveNumber,
                 `Food conversions[${convIdx}].ratio must be a postive number`)
         ), null);
@@ -81,8 +81,8 @@ router.put('/:id', ensureAuth, (req, res, next) => {
         VLD.optional(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions (if defined) must be a non-empty array') ||
         (req.body.conversions ?
                 req.body.conversions.reduce((error, conversion, convIdx) => error || (
-                    VLD.required(conversion.unit_id, VLD.isBoundedInt(0, maxUnitType),
-                        `Food conversions[${convIdx}].unit_id must be an integer between 0 and ${maxUnitType}`) ||
+                    VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType),
+                        `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`) ||
                     VLD.required(conversion.ratio, VLD.isPositiveNumber,
                         `Food conversions[${convIdx}].ratio must be a positive number`)
                 ), null) :
@@ -139,7 +139,7 @@ router.get('/at/:page', (req, res, next) => {
         .then(records => records.map(record => record.exportable))
         .then(records => res.wrap({
             food: records.slice(0, ITEMS_PER_PAGE),
-            last_page: records.length <= ITEMS_PER_PAGE
+            lastPage: records.length <= ITEMS_PER_PAGE
         }))
         .catch(() => next({status: 500, message: 'Server Error: Unable to retrieve the specified Food records'}));
 });

@@ -1,7 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const MaxUnitType = require('./unit_types').length - 1;
+const MaxUnitType = require('./unitTypes').length - 1;
 
 const Food = new mongoose.Schema({
     name: {
@@ -17,7 +17,7 @@ const Food = new mongoose.Schema({
     conversions: {
         type: [{
             _id: false,
-            unit_id: {
+            unitId: {
                 type: Number,
                 required: true,
                 min: 0,

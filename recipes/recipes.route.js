@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const Recipe = require('./recipe.model');
 const Food = require('../food/module').model;
-const UnitTypes = require('../food/module').unit_types;
+const UnitTypes = require('../food/module').unitTypes;
 const wrapper = require('../response-wrapper');
 const VLD = require('../request-validator');
 const auth = require('../auth/module');
@@ -34,41 +34,41 @@ router.post('/', ensureAuth, (req, res, next) => {
         VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number') ||
         VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number') ||
         VLD.mutuallyExclusive([req.body.makes, req.body.serves], 'Recipe serves xor makes must be defined') ||
-        VLD.required(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time must be a positive number') ||
-        VLD.required(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time must be a positive number') ||
-        VLD.required(req.body.ingredient_sections, VLD.isNonEmptyArray, 'Recipe ingredient_sections must be a non-empty array') ||
-        req.body.ingredient_sections.reduce((error, section, secIdx) => error || (
+        VLD.required(req.body.prepTime, VLD.isPositiveNumber, 'Recipe prepTime must be a positive number') ||
+        VLD.required(req.body.cookTime, VLD.isPositiveNumber, 'Recipe cookTime must be a positive number') ||
+        VLD.required(req.body.ingredientSections, VLD.isNonEmptyArray, 'Recipe ingredientSections must be a non-empty array') ||
+        req.body.ingredientSections.reduce((error, section, secIdx) => error || (
             VLD.optional(section.heading, VLD.isNonEmptyString,
-                `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
+                `Recipe ingredientSections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
             VLD.required(section.ingredients, VLD.isNonEmptyArray,
-                `Recipe ingredient_sections[${secIdx}].ingredients must be a non-empty array`) ||
+                `Recipe ingredientSections[${secIdx}].ingredients must be a non-empty array`) ||
             section.ingredients.reduce((error, ingredient, ingIdx) => error || (
-                VLD.required(ingredient.ingredient_type, VLD.isOneOf('Quantified', 'FreeText')) ||
-                ingredient.ingredient_type === 'Quantified' ?
+                VLD.required(ingredient.ingredientType, VLD.isOneOf('Quantified', 'FreeText')) ||
+                ingredient.ingredientType === 'Quantified' ?
                     (
                         VLD.required(ingredient.amount, VLD.isPositiveNumber,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
-                        VLD.required(ingredient.unit_ids, VLD.isNonEmptyArray,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_ids must be a non-empty array`) ||
-                        ingredient.unit_ids.reduce((error, unit_id, uidIdx) => error ||
-                            VLD.required(unit_id, VLD.isBoundedInt(0, maxUnitType),
-                                `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id[${uidIdx}] must be an integer between 0 and ${maxUnitType}`
+                            `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
+                        VLD.required(ingredient.unitIds, VLD.isNonEmptyArray,
+                            `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitIds must be a non-empty array`) ||
+                        ingredient.unitIds.reduce((error, unitId, uidIdx) => error ||
+                            VLD.required(unitId, VLD.isBoundedInt(0, maxUnitType),
+                                `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitId[${uidIdx}] must be an integer between 0 and ${maxUnitType}`
                             ), null) ||
-                        VLD.required(ingredient.food_id, VLD.isNonEmptyString,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`) ||
-                        VLD.optional(ingredient.additional_desc, VLD.isNonEmptyString,
-                            `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].additional_desc (if defined) must be a non-empty string`)
+                        VLD.required(ingredient.foodId, VLD.isNonEmptyString,
+                            `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].foodId must be a non-empty string`) ||
+                        VLD.optional(ingredient.additionalDesc, VLD.isNonEmptyString,
+                            `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].additionalDesc (if defined) must be a non-empty string`)
                     ) :
                     VLD.required(ingredient.description, VLD.isNonEmptyString,
-                        `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].description must be a non-empty string`)
+                        `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].description must be a non-empty string`)
             ), null)
         ), null) ||
         VLD.required(req.body.method, VLD.isNonEmptyArray, 'Recipe method must be a non-empty array') ||
         req.body.method.reduce((error, step, stepIdx) => error ||
             VLD.required(step, VLD.isNonEmptyString, `Recipe method[${stepIdx}] must be a non-empty string`),
             null) ||
-        VLD.required(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url must be a non-empty string') ||
-        VLD.required(req.body.image_url, VLD.isNonEmptyString, 'Recipe image_url must be a non-empty string');
+        VLD.required(req.body.referenceUrl, VLD.isNonEmptyString, 'Recipe referenceUrl must be a non-empty string') ||
+        VLD.required(req.body.imageUrl, VLD.isNonEmptyString, 'Recipe imageUrl must be a non-empty string');
 
     if (error) {
         return next({status: 400, message: error});
@@ -76,19 +76,19 @@ router.post('/', ensureAuth, (req, res, next) => {
 
     Promise.all(
         // find any invalid ids
-        req.body.ingredient_sections.map(section => section.ingredients)
+        req.body.ingredientSections.map(section => section.ingredients)
             .reduce((a, b) => a.concat(b))
-            .map(ingredient => ingredient.food_id)
+            .map(ingredient => ingredient.foodId)
             .filter((food, idx, arr) => arr.indexOf(food) === idx)
             .map(id => Food.findOne({_id: id})
                 .then(record => record ? null : id)
                 .catch(() => id)
             )
     )
-        .then(invalid_ids => invalid_ids.filter(v => v))
-        .then(invalid_ids => {
-            if (invalid_ids.length > 0)
-                return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
+        .then(invalidIds => invalidIds.filter(v => v))
+        .then(invalidIds => {
+            if (invalidIds.length > 0)
+                return next({status: 400, message: `Invalid food ids: ${invalidIds.join(';')}`});
 
             mapIngredientTypes(req.body.ingredientSections);
             return Recipe.create(req.body)
@@ -110,15 +110,15 @@ router.get('/:id', (req, res, next) => {
         .then(record => record ? record : Promise.reject(RecordNotFound))
         .then(recipe => recipe.exportable)
         .then(recipe => {
-            const food_ids =
-                recipe.ingredient_sections
+            const foodIds =
+                recipe.ingredientSections
                     .map(section => section.ingredients)
                     .reduce((a, b) => a.concat(b))
                     .filter(ingredient => ingredient.ingredientType === 0)
                     .map(ingredient => ingredient.foodId)
                     .filter((foodId, idx, arr) => arr.indexOf(foodId) === idx);
 
-            Promise.all(food_ids.map(id =>
+            Promise.all(foodIds.map(id =>
                 // ignore any food items not in the database
                 Food.findOne({_id: id})
                     .catch(() => null)
@@ -147,34 +147,34 @@ router.put('/:id', ensureAuth, (req, res, next) => {
     VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number') ||
     VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number') ||
     ([req.body.serves, req.body.makes].every(val => val !== undefined)) ? 'Recipe serves and makes cannot both be defined' : null ||
-        VLD.optional(req.body.prep_time, VLD.isPositiveNumber, 'Recipe prep_time (if defined) must be a positive number') ||
-        VLD.optional(req.body.cook_time, VLD.isPositiveNumber, 'Recipe cook_time (if defined) must be a positive number') ||
-        VLD.optional(req.body.ingredient_sections, VLD.isNonEmptyArray, 'Recipe ingredient_sections (if defined) must be a non-empty array') ||
-        (req.body.ingredient_sections !== undefined ?
-                req.body.ingredient_sections.reduce((error, section, secIdx) => error || (
+        VLD.optional(req.body.prepTime, VLD.isPositiveNumber, 'Recipe prepTime (if defined) must be a positive number') ||
+        VLD.optional(req.body.cookTime, VLD.isPositiveNumber, 'Recipe cookTime (if defined) must be a positive number') ||
+        VLD.optional(req.body.ingredientSections, VLD.isNonEmptyArray, 'Recipe ingredientSections (if defined) must be a non-empty array') ||
+        (req.body.ingredientSections !== undefined ?
+                req.body.ingredientSections.reduce((error, section, secIdx) => error || (
                     VLD.optional(section.heading, VLD.isNonEmptyString,
-                        `Recipe ingredient_sections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
+                        `Recipe ingredientSections[${secIdx}].heading (if it exists) must be a non-empty string`) ||
                     VLD.required(section.ingredients, VLD.isNonEmptyArray,
-                        `Recipe ingredient_sections[${secIdx}].ingredients must be a non-empty array`) ||
+                        `Recipe ingredientSections[${secIdx}].ingredients must be a non-empty array`) ||
                     section.ingredients.reduce((error, ingredient, ingIdx) => error || (
-                        VLD.required(ingredient.ingredient_type, VLD.isOneOf('Quantified', 'FreeText')) ||
-                        ingredient.ingredient_type === 'Quantified' ?
+                        VLD.required(ingredient.ingredientType, VLD.isOneOf('Quantified', 'FreeText')) ||
+                        ingredient.ingredientType === 'Quantified' ?
                             (
                                 VLD.required(ingredient.amount, VLD.isPositiveNumber,
-                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
-                                VLD.required(ingredient.unit_ids, VLD.isNonEmptyArray,
-                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_ids must be a non-empty array`) ||
-                                ingredient.unit_ids.reduce((error, unit_id, uidIdx) => error ||
-                                    VLD.required(unit_id, VLD.isBoundedInt(0, maxUnitType),
-                                        `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].unit_id[${uidIdx}] must be an integer between 0 and ${maxUnitType}`
+                                    `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`) ||
+                                VLD.required(ingredient.unitIds, VLD.isNonEmptyArray,
+                                    `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitIds must be a non-empty array`) ||
+                                ingredient.unitIds.reduce((error, unitId, uidIdx) => error ||
+                                    VLD.required(unitId, VLD.isBoundedInt(0, maxUnitType),
+                                        `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitId[${uidIdx}] must be an integer between 0 and ${maxUnitType}`
                                     ), null) ||
-                                VLD.required(ingredient.food_id, VLD.isNonEmptyString,
-                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].food_id must be a non-empty string`) ||
-                                VLD.optional(ingredient.additional_desc, VLD.isNonEmptyString,
-                                    `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].additional_desc (if defined) must be a non-empty string`)
+                                VLD.required(ingredient.foodId, VLD.isNonEmptyString,
+                                    `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].foodId must be a non-empty string`) ||
+                                VLD.optional(ingredient.additionalDesc, VLD.isNonEmptyString,
+                                    `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].additionalDesc (if defined) must be a non-empty string`)
                             ) :
                             VLD.required(ingredient.description, VLD.isNonEmptyString,
-                                `Recipe ingredient_sections[${secIdx}].ingredients[${ingIdx}].description must be a non-empty string`)
+                                `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].description must be a non-empty string`)
                     ), null)
                 ), null) :
                 null
@@ -188,16 +188,16 @@ router.put('/:id', ensureAuth, (req, res, next) => {
                 ) :
                 null
         ) ||
-        VLD.optional(req.body.reference_url, VLD.isNonEmptyString, 'Recipe reference_url (if defined) must be a non-empty string') ||
-        VLD.optional(req.body.image_url, VLD.isNonEmptyString, 'Recipe image_url (if defined) must be a non-empty string');
+        VLD.optional(req.body.referenceUrl, VLD.isNonEmptyString, 'Recipe referenceUrl (if defined) must be a non-empty string') ||
+        VLD.optional(req.body.imageUrl, VLD.isNonEmptyString, 'Recipe imageUrl (if defined) must be a non-empty string');
 
     if (error)
         return next({status: 400, message: error});
 
     Promise.all(
         // find any invalid ids
-        req.body.ingredient_sections !== undefined ?
-            req.body.ingredient_sections
+        req.body.ingredientSections !== undefined ?
+            req.body.ingredientSections
                 .map(section => section.ingredients)
                 .reduce((a, b) => a.concat(b))
                 .filter(ingredient => ingredient.ingredientType === 0)
@@ -209,10 +209,10 @@ router.put('/:id', ensureAuth, (req, res, next) => {
                         .catch(() => id)
                 ) : []
     )
-        .then(invalid_ids => invalid_ids.filter(v => v))
-        .then(invalid_ids => {
-            if (invalid_ids.length > 0)
-                return next({status: 400, message: `Invalid food ids: ${invalid_ids.join(';')}`});
+        .then(invalidIds => invalidIds.filter(v => v))
+        .then(invalidIds => {
+            if (invalidIds.length > 0)
+                return next({status: 400, message: `Invalid food ids: ${invalidIds.join(';')}`});
 
             if (req.body.ingredientSections) {
                 mapIngredientTypes(req.body.ingredientSections);
@@ -273,12 +273,12 @@ router.get('/at/:page', (req, res, next) => {
         .skip(page * ITEMS_PER_PAGE)
         .then(recipes => recipes.map(recipe => recipe.exportable))
         .then(recipes => {
-            const last_page = recipes.length <= ITEMS_PER_PAGE;
+            const lastPage = recipes.length <= ITEMS_PER_PAGE;
             recipes = recipes.slice(0, ITEMS_PER_PAGE);
 
-            const food_ids = recipes.length === 0 ?
+            const foodIds = recipes.length === 0 ?
                 [] :
-                recipes.map(recipe => recipe.ingredient_sections)
+                recipes.map(recipe => recipe.ingredientSections)
                     .reduce((a, b) => a.concat(b))
                     .map(section => section.ingredients)
                     .reduce((a, b) => a.concat(b))
@@ -286,7 +286,7 @@ router.get('/at/:page', (req, res, next) => {
                     .map(ingredient => ingredient.foodId)
                     .filter((foodId, idx, arr) => arr.indexOf(foodId) === idx);
 
-            Promise.all(food_ids.map(id =>
+            Promise.all(foodIds.map(id =>
                 // ignore any food items not in the database
                 Food.findOne({_id: id})
                     .catch(() => null)

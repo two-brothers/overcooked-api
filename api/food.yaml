@@ -85,8 +85,8 @@ FoodRecordsByPage:
       - Food
     summary: Get the set of food records at the given page number
     description: The food records are not sorted in any particular order.
-      They can be requested in batches of twenty, indexed by the page number. The final page has `last_page` set to `true`.
-      Requests with page values that are too high return and empty list and set `last_page` to `true`
+      They can be requested in batches of twenty, indexed by the page number. The final page has `lastPage` set to `true`.
+      Requests with page values that are too high return and empty list and set `lastPage` to `true`
     parameters:
       - name: page
         in: path
@@ -103,7 +103,7 @@ FoodRecordsByPage:
               type: array
               items:
                 $ref: '#/definitions/Food'
-            last_page:
+            lastPage:
               type: boolean
         500:
           $ref: '#/errors/UnexpectedServerErrorResponse'

@@ -11,7 +11,7 @@ const DBStructure = require('./food.route.mock-db.spec');
 const Enumerator = require('../bdd-enumerator/module');
 const EnumeratorUtil = require('../enumerator-utility');
 const Food = require('./food.model');
-const MaxUnitType = require('./unit_types').length - 1;
+const MaxUnitType = require('./unitTypes').length - 1;
 const FoodSample = require('./food.sample');
 
 const should = chai.should();
@@ -24,7 +24,7 @@ const { simplifiedNonEmptyArray } = EnumeratorUtil;
 const singularScenarios = nonEmptyString;
 const pluralScenarios = nonEmptyString;
 const conversionsScenarios = simplifiedNonEmptyArray(object([
-    new dependent('unit_id', presence.required(boundedInteger(0, MaxUnitType))),
+    new dependent('unitId', presence.required(boundedInteger(0, MaxUnitType))),
     new dependent('ratio', presence.required(finitePositiveNumber))
 ]));
 
@@ -137,7 +137,7 @@ describe('/food', () => {
         describe('GET', () => {
             describe('specified id is invalid', () => {
                 beforeEach(() => {
-                    endpoint = `${endpoint}/invalid_id`;
+                    endpoint = `${endpoint}/invalidId`;
                 });
 
                 it('should return a NotFound error', () =>
@@ -201,7 +201,7 @@ describe('/food', () => {
                 const unknownRecordTest = () => {
                     describe('specified id is invalid', () => {
                         beforeEach(() => {
-                            endpoint = `${endpoint}/invalid_id`;
+                            endpoint = `${endpoint}/invalidId`;
                         });
 
                         it('should return a NotFound error', () =>
@@ -289,7 +289,7 @@ describe('/food', () => {
 
                 describe('specified id is invalid', () => {
                     beforeEach(() => {
-                        endpoint = `${endpoint}/invalid_id`;
+                        endpoint = `${endpoint}/invalidId`;
                     });
 
                     it('should return a NotFound error', () =>
@@ -379,7 +379,7 @@ describe('/food', () => {
 
         describe('"page" is a string', () => {
             beforeEach(() => {
-                endpoint = `${endpoint}/arbitrary_string`;
+                endpoint = `${endpoint}/arbitraryString`;
             });
             expectBadGetRequest();
         });
@@ -408,7 +408,7 @@ describe('/food', () => {
                 request.get(endpoint)
                     .then(res => {
                         res.status.should.equal(200);
-                        res.body.data.last_page.should.equal(false);
+                        res.body.data.lastPage.should.equal(false);
                         res.body.data.food.length.should.equal(ITEMS_PER_PAGE);
                         res.body.data.food.should.deep.equal(sorted.slice(0, ITEMS_PER_PAGE));
                     })
@@ -425,7 +425,7 @@ describe('/food', () => {
                 request.get(endpoint)
                     .then(res => {
                         res.status.should.equal(200);
-                        res.body.data.last_page.should.equal(true);
+                        res.body.data.lastPage.should.equal(true);
                         res.body.data.food.length.should.equal(remainder);
                         res.body.data.food.should.deep.equal(sorted.slice((numPages - 1) * ITEMS_PER_PAGE));
                     })
@@ -443,7 +443,7 @@ describe('/food', () => {
                     request.get(`${endpoint}/${pageIdx}`)
                         .then(res => {
                             res.status.should.equal(200);
-                            res.body.data.last_page.should.equal(pageIdx === numPages - 1);
+                            res.body.data.lastPage.should.equal(pageIdx === numPages - 1);
                             res.body.data.food.length.should.equal(pageIdx === numPages - 1 ? remainder : ITEMS_PER_PAGE);
                             return res.body.data.food;
                         })
@@ -467,8 +467,8 @@ describe('/food', () => {
                 request.get(endpoint).then(res => res.body.data.food.should.deep.equal([]))
             );
 
-            it('should set last_page to true', () =>
-                request.get(endpoint).then(res => res.body.data.last_page.should.equal(true))
+            it('should set lastPage to true', () =>
+                request.get(endpoint).then(res => res.body.data.lastPage.should.equal(true))
             );
         });
     });

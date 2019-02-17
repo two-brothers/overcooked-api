@@ -13,11 +13,11 @@ Recipe:
       $ref: '#/definitions/Quantity'
     makes:
       $ref: '#/definitions/Quantity'
-    prep_time:
+    prepTime:
       $ref: '#/definitions/Duration'
-    cook_time:
+    cookTime:
       $ref: '#/definitions/Duration'
-    ingredient_sections:
+    ingredientSections:
       type: array
       items:
         $ref: '#/definitions/IngredientSection'
@@ -25,11 +25,11 @@ Recipe:
       type: array
       items:
         $ref: '#/definitions/NonEmptyString'
-    reference_url:
+    referenceUrl:
       $ref: '#/definitions/NonEmptyString'
-    image_url:
+    imageUrl:
       $ref: '#/definitions/NonEmptyString'
-    last_updated:
+    lastUpdated:
       $ref: '#/definitions/Timestamp'
 
 IngredientSection:
@@ -42,41 +42,41 @@ IngredientSection:
       type: array
       items:
         required:
-          - ingredient_type
+          - ingredientType
         properties:
-          ingredient_type:
+          ingredientType:
             type: number
             minimum: 0
             maximum: 1
         discriminator:
-          propertyName: ingredient_type
+          propertyName: ingredientType
 
 Quantified:
   required:
-    - ingredient_type
+    - ingredientType
     - amount
-    - unit_id
-    - food_id
+    - unitId
+    - foodId
   properties:
-    ingredient_type:
+    ingredientType:
       type: number
       minimum: 0
       maximum: 0
     amount:
       $ref: '#/definitions/Quantity'
-    unit_ids:
+    unitIds:
       $ref: '#/definitions/UnitIDs'
-    food_id:
+    foodId:
       $ref: '#/definitions/ID'
-    additional_desc:
+    additionalDesc:
       $ref: '#/definitions/NonEmptyString'
 
 FreeText:
   required:
-    - ingredient_type
+    - ingredientType
     - description
   properties:
-    ingredient_type:
+    ingredientType:
       type: number
       minimum: 1
       maximum: 1
@@ -100,7 +100,7 @@ Food:
           - unit
           - ratio
         properties:
-          unit_id:
+          unitId:
             $ref: '#/definitions/UnitID'
           ratio:
             type: number
