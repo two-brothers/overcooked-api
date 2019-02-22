@@ -29,16 +29,18 @@ router.use((req, res, next) => {
 router.post('/', ensureAuth, (req, res, next) => {
     const maxUnitType = UnitTypes.length - 1;
 
-    const error = VLD.required(req.body.name, () => true, 'Food name must be defined') ||
-        VLD.required(req.body.name.singular, VLD.isNonEmptyString, 'Food name.singular must be a string') ||
-        VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string') ||
-        VLD.required(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions must be a non-empty array') ||
-        req.body.conversions.reduce((error, conversion, convIdx) => error || (
-            VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType),
-                `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`) ||
-            VLD.required(conversion.ratio, VLD.isPositiveNumber,
-                `Food conversions[${convIdx}].ratio must be a postive number`)
-        ), null);
+    const error = VLD.firstError(
+        VLD.required(req.body.name, () => true, 'Food name must be defined'),
+        () => req.body.name && VLD.firstError(
+            VLD.required(req.body.name.singular, VLD.isNonEmptyString, 'Food name.singular must be a string'),
+            VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string')
+        ),
+        VLD.required(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions must be a non-empty array'),
+        () => VLD.firstError(...req.body.conversions.map((conversion, convIdx) => () => VLD.firstError(
+            VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType), `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`),
+            VLD.required(conversion.ratio, VLD.isPositiveNumber, `Food conversions[${convIdx}].ratio must be a positive number`)
+        )))
+    );
 
     if (error)
         return next({status: 400, message: error});
@@ -73,21 +75,17 @@ router.put('/:id', ensureAuth, (req, res, next) => {
     const RecordNotFound = new Error('Record Not Found');
     const maxUnitType = UnitTypes.length - 1;
 
-    const error = (req.body.name !== undefined ?
-            VLD.required(req.body.name.singular, VLD.isNonEmptyString, 'Food name.singular must be a string') ||
-            VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string') :
-            null
-        ) ||
-        VLD.optional(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions (if defined) must be a non-empty array') ||
-        (req.body.conversions ?
-                req.body.conversions.reduce((error, conversion, convIdx) => error || (
-                    VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType),
-                        `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`) ||
-                    VLD.required(conversion.ratio, VLD.isPositiveNumber,
-                        `Food conversions[${convIdx}].ratio must be a positive number`)
-                ), null) :
-                null
-        );
+    const error = VLD.firstError(
+        () => req.body.name && VLD.firstError(
+            VLD.required(req.body.name.singular, VLD.isNonEmptyString, 'Food name.singular must be a string'),
+            VLD.required(req.body.name.plural, VLD.isNonEmptyString, 'Food name.plural must be a string')
+        ),
+        VLD.optional(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions (if defined) must be a non-empty array'),
+        () => req.body.conversions && VLD.firstError(...req.body.conversions.map((conversion, convIdx) => () => VLD.firstError(
+            VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType), `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`),
+            VLD.required(conversion.ratio, VLD.isPositiveNumber, `Food conversions[${convIdx}].ratio must be a positive number`)
+        )))
+    );
 
     if (error)
         return next({status: 400, message: error});
@@ -127,7 +125,7 @@ router.get('/at/:page', (req, res, next) => {
     const ITEMS_PER_PAGE = 20;
 
     const page = Number(req.params.page);
-    const error = VLD.required(page, VLD.isBoundedInt(0, Infinity), 'The page parameter must be a non-negative integer');
+    const error = VLD.required(page, VLD.isBoundedInt(0, Infinity), 'The page parameter must be a non-negative integer')();
 
     if (error)
         return next({status: 400, message: error});
