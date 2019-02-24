@@ -5,6 +5,7 @@
   "scripts": {
     "db": "scripts/run_db.sh",
     "serve": "scripts/build_and_serve.sh",
+    "serve-dev": "NODE_ENV=development node www",
     "test": "scripts/test.sh"
   },
   "dependencies": {

@@ -37,17 +37,17 @@ app.use(session({
     name: 'sessionID', // use a generic name to prevent app fingerprinting
     secret: random(32).toString(),
     resave: false, // don't save sessions that have not changed
-    saveUninitialized: true,
-    rolling: true, // a session ID cookie is set on every response (resetting the expiration time)
+    saveUninitialized: false,
     cookie: {
         httpOnly: true, // compliant clients will not reveal the cookie to client-side javascript
-        secure: false, // send cookies over http. This isn't a security issue because the NFS server enforces https.
+        secure: process.env.NODE_ENV !== 'development', // send cookies over http in development and https in production
         maxAge: 1000 * 60 * 30 // 30 minutes
     },
     // TODO: there has got to be a way to stub this in the test file
     store: process.env.NODE_ENV === 'test' ? null : new MongoStore({mongooseConnection: mongoose.connection})
 }));
 app.disable('x-powered-by'); // Don't reveal that we're using Express
+app.enable('trust proxy');
 
 /*** LOGGING ***/
 
