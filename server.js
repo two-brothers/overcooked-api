@@ -41,7 +41,7 @@ app.use(session({
     cookie: {
         httpOnly: true, // compliant clients will not reveal the cookie to client-side javascript
         secure: process.env.NODE_ENV !== 'development', // send cookies over http in development and https in production
-        maxAge: 1000 * 60 * 30 // 30 minutes
+        maxAge: 1000 * 60 * 60 * 2 // 2 hours
     },
     // TODO: there has got to be a way to stub this in the test file
     store: process.env.NODE_ENV === 'test' ? null : new MongoStore({ mongooseConnection: mongoose.connection })
