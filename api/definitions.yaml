@@ -107,6 +107,14 @@ Food:
             minimum: 0
             exclusiveMinimum: true
 
+FoodMap:
+  type: object
+  properties:
+    <id 0>:
+      $ref: '#/definitions/Food'
+    <id 1>:
+      $ref: '#/definitions/Food'
+
 ID:
   type: string
   example: '< Set by the server >'

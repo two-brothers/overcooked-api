@@ -40,9 +40,7 @@ RecipesByIdPath:
             recipe:
               $ref: '#/definitions/Recipe'
             food:
-              type: array
-              items:
-                $ref: '#/definitions/Food'
+              $ref: '#/definitions/FoodMap'
       404:
         $ref: '#/recipes/RecipeDoesNotExistResponse'
       500:
@@ -114,9 +112,7 @@ RecipesByPage:
               items:
                 $ref: '#/definitions/Recipe'
             food:
-              type: array
-              items:
-                $ref: '#/definitions/Food'
+              $ref: '#/definitions/FoodMap'
             lastPage:
               type: boolean
       500:
