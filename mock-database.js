@@ -1,7 +1,7 @@
-const sinon = require('sinon');
-const mongoose = require('mongoose');
+const sinon = require('sinon')
+const mongoose = require('mongoose')
 
-const MockQuery = require('./mock-query');
+const MockQuery = require('./mock-query')
 
 /**
  * A class to mock a small set of calls to Mongoose models and easily resets to a known state
@@ -20,7 +20,7 @@ class Database {
      * Importantly, this can be used in tests that are constructed before the database and records are initialised.
      */
     static get A_VALID_RECORD_ID() {
-        return 'A_VALID_RECORD_ID';
+        return 'A_VALID_RECORD_ID'
     };
 
     /**
@@ -28,22 +28,22 @@ class Database {
      * responds to malformed record ids) instead of returning null (for invalid, but well-formed ids)
      */
     static get A_MALFORMED_RECORD_ID() {
-        return 'A_MALFORMED_RECORD_ID';
+        return 'A_MALFORMED_RECORD_ID'
     }
 
     /**
      * Initialise the database and stub the mongoose.connect function
      */
     constructor() {
-        this.data = {};
-        sinon.stub(mongoose, 'connect').returns(Promise.resolve(true));
+        this.data = {}
+        sinon.stub(mongoose, 'connect').returns(Promise.resolve(true))
     }
 
     /**
      * Remove the spies
      */
     disconnect() {
-        sinon.restore();
+        sinon.restore()
     }
 
     /**
@@ -54,10 +54,10 @@ class Database {
     static getRecordUpdateFn(dbModel) {
         return (record) => {
             if (record.id in dbModel.removed) {
-                throw new Error(`Cannot update ${name} record ${record.id} because it is already removed`);
+                throw new Error(`Cannot update ${name} record ${record.id} because it is already removed`)
             }
-            dbModel.updated[record.id] = record;
-        };
+            dbModel.updated[record.id] = record
+        }
     }
 
     /**
@@ -67,8 +67,8 @@ class Database {
      */
     static getRemoveFn(dbModel) {
         return (record) => {
-            dbModel.removed[record.id] = record;
-        };
+            dbModel.removed[record.id] = record
+        }
     }
 
     /**
@@ -77,13 +77,13 @@ class Database {
      * @param data the data in the record
      */
     static newRecord(dbModel, data) {
-        const record =  Object.assign(
+        const record = Object.assign(
             new dbModel.recordType(Database.getRecordUpdateFn(dbModel), Database.getRemoveFn(dbModel)),
-            {id: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString()},
+            { id: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString() },
             deepClone(data)
-        );
-        record.save();
-        return record;
+        )
+        record.save()
+        return record
     }
 
     /**
@@ -99,13 +99,13 @@ class Database {
         const dbModel = {
             name: name, records: {}, updated: {}, removed: {},
             mongoose: mongooseModel, recordType: recordType
-        };
+        }
         records.map(item => {
-            const record = Database.newRecord(dbModel, item);
-            dbModel.records[record.id] = record;
-        });
-        deepFreeze(dbModel.records);
-        this.data[name] = dbModel;
+            const record = Database.newRecord(dbModel, item)
+            dbModel.records[record.id] = record
+        })
+        deepFreeze(dbModel.records)
+        this.data[name] = dbModel
     }
 
     /**
@@ -122,30 +122,30 @@ class Database {
      *   - throws an error if the model does not exist in the database
      */
     getRecord(modelName, id, inSpy = false) {
-        const dbModel = this.data[modelName];
+        const dbModel = this.data[modelName]
 
         if (!dbModel)
-            throw new Error(`${modelName} is not a model in the mocked database`);
+            throw new Error(`${modelName} is not a model in the mocked database`)
 
         if (id === Database.A_VALID_RECORD_ID) {
             id = Object.getOwnPropertyNames(dbModel.records)
                 .filter(id => dbModel.removed[id] === undefined)
-                .filter(id => dbModel.updated[id] === undefined)[0];
+                .filter(id => dbModel.updated[id] === undefined)[0]
         }
 
         if (id === Database.A_MALFORMED_RECORD_ID)
-            return Promise.reject(`Cast to ObjectId failed for value "{id}"`);
+            return Promise.reject(`Cast to ObjectId failed for value "{id}"`)
 
         if (dbModel.removed[id])
-            return Promise.resolve(null);
+            return Promise.resolve(null)
 
         if (dbModel.updated[id])
-            return Promise.resolve(dbModel.updated[id].clone(inSpy));
+            return Promise.resolve(dbModel.updated[id].clone(inSpy))
 
         if (dbModel.records[id])
-            return Promise.resolve(dbModel.records[id].clone(inSpy));
+            return Promise.resolve(dbModel.records[id].clone(inSpy))
 
-        return Promise.resolve(null);
+        return Promise.resolve(null)
     }
 
     /**
@@ -155,20 +155,20 @@ class Database {
      * @returns {Array<Promise<record>>} all records (that have not been removed) in the specified mock model.
      */
     getAllRecords(modelName, inSpy = false) {
-        const dbModel = this.data[modelName];
+        const dbModel = this.data[modelName]
 
         if (!dbModel)
-            throw new Error(`${modelName} is not a model in the mocked database`);
+            throw new Error(`${modelName} is not a model in the mocked database`)
 
-        const allRecords = Object.assign({}, dbModel.records, dbModel.updated);
+        const allRecords = Object.assign({}, dbModel.records, dbModel.updated)
 
         Object.getOwnPropertyNames(dbModel.removed)
             .map(id => {
-                delete allRecords[id];
-            });
+                delete allRecords[id]
+            })
 
         return Object.getOwnPropertyNames(allRecords)
-            .map(id => this.getRecord(modelName, id, inSpy));
+            .map(id => this.getRecord(modelName, id, inSpy))
     }
 
     /**
@@ -178,27 +178,27 @@ class Database {
     reset() {
         Object.getOwnPropertyNames(this.data)
             .map(modelName => {
-                const model = this.data[modelName];
-                model.updated = {};
-                model.removed = {};
+                const model = this.data[modelName]
+                model.updated = {}
+                model.removed = {}
 
-                model.mongoose.findOne.restore ? model.mongoose.findOne.restore() : null;
-                sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id, true));
+                model.mongoose.findOne.restore ? model.mongoose.findOne.restore() : null
+                sinon.stub(model.mongoose, 'findOne').callsFake(param => this.getRecord(modelName, param._id, true))
 
-                model.mongoose.create.restore ? model.mongoose.create.restore() : null;
+                model.mongoose.create.restore ? model.mongoose.create.restore() : null
                 sinon.stub(model.mongoose, 'create').callsFake(param => {
-                    const record = Database.newRecord(model, param);
-                    model.updated[record.id] = record;
-                    return this.getRecord(modelName, record.id, true);
-                });
+                    const record = Database.newRecord(model, param)
+                    model.updated[record.id] = record
+                    return this.getRecord(modelName, record.id, true)
+                })
 
-                model.mongoose.find.restore ? model.mongoose.find.restore() : null;
+                model.mongoose.find.restore ? model.mongoose.find.restore() : null
                 sinon.stub(model.mongoose, 'find').callsFake(() => {
-                    const records = this.getAllRecords(modelName, true);
-                    records.sort((a, b) => a.id < b.id);
-                    return new MockQuery(records);
-                });
-            });
+                    const records = this.getAllRecords(modelName, true)
+                    records.sort((a, b) => a.id < b.id)
+                    return new MockQuery(records)
+                })
+            })
     }
 }
 
@@ -214,8 +214,8 @@ class Record {
      *  ( it is up to the caller to decide how to simulate the remove )
      */
     constructor(updateRecordFn, removeRecordFn) {
-        this.updateRecordFn = updateRecordFn;
-        this.removeRecordFn = removeRecordFn;
+        this.updateRecordFn = updateRecordFn
+        this.removeRecordFn = removeRecordFn
     }
 
     /**
@@ -228,10 +228,10 @@ class Record {
             Object.getOwnPropertyNames(property)
                 .map(key => {
                     if (typeof property[key] === 'undefined')
-                        delete property[key];
+                        delete property[key]
                     else
-                        Record.removeUndefined(property[key]);
-                });
+                        Record.removeUndefined(property[key])
+                })
         }
     }
 
@@ -239,15 +239,15 @@ class Record {
      * Simulate a Mongoose record.save() call by removing any undefined values and executing the saved callback
      */
     save() {
-        Record.removeUndefined(this);
-        this.updateRecordFn(this);
+        Record.removeUndefined(this)
+        this.updateRecordFn(this)
     }
 
     /**
      * Simulate a Mongoose record.remove() by executing the saved callback
      */
     remove() {
-        this.removeRecordFn(this);
+        this.removeRecordFn(this)
     }
 
     /**
@@ -257,13 +257,13 @@ class Record {
      * @param retainMockFns whether the returned value should maintain the Mock artifact functions
      */
     clone(retainMockFns) {
-        const clone = Object.create(Object.getPrototypeOf(this));
-        Object.assign(clone, deepClone(this));
+        const clone = Object.create(Object.getPrototypeOf(this))
+        Object.assign(clone, deepClone(this))
         if (!retainMockFns) {
-            delete clone.updateRecordFn;
-            delete clone.removeRecordFn;
+            delete clone.updateRecordFn
+            delete clone.removeRecordFn
         }
-        return clone;
+        return clone
     }
 }
 
@@ -274,31 +274,31 @@ class Record {
 const deepFreeze = (object) => {
     Object.getOwnPropertyNames(object)
         .filter(prop => typeof object[prop] === 'object')
-        .map(prop => deepFreeze(object[prop]));
-    Object.freeze(object);
-};
+        .map(prop => deepFreeze(object[prop]))
+    Object.freeze(object)
+}
 
 /**
  * A utility function to recursively clone an object
  */
 const deepClone = (object) => {
     if (Array.isArray(object)) {
-        return object.map(element => deepClone(element));
+        return object.map(element => deepClone(element))
     }
 
     if (typeof (object) === 'object') {
-        const clone = Object.assign({}, object);
+        const clone = Object.assign({}, object)
         Object.getOwnPropertyNames(clone)
             .filter(name => {
-                clone[name] = deepClone(clone[name]);
-            });
-        return clone;
+                clone[name] = deepClone(clone[name])
+            })
+        return clone
     }
 
-    return object;
-};
+    return object
+}
 
 module.exports = {
     db: Database,
     record: Record
-};
+}

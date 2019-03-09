@@ -1,9 +1,9 @@
-const Admin = require('./admin.model');
+const Admin = require('./admin.model')
 
 const profiles = [
     'bigfriedicecream',
     'nikeshnazareth'
-];
+]
 
 /**
  * Create the admin profiles if they don't exist
@@ -11,9 +11,9 @@ const profiles = [
  */
 const initialise = () =>
     Promise.all(profiles.map(profile =>
-        Admin.findOne({profile: profile})
-            .then(record => record ? record : Admin.create({profile: profile}))
+        Admin.findOne({ profile: profile })
+            .then(record => record ? record : Admin.create({ profile: profile }))
             .then(() => null)
-    ));
+    ))
 
-module.exports = initialise;
+module.exports = initialise

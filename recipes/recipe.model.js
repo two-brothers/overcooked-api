@@ -1,17 +1,17 @@
-'use strict';
+'use strict'
 
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
-const MaxUnitType = require('../food/module').unitTypes.length - 1;
+const MaxUnitType = require('../food/module').unitTypes.length - 1
 
-const isPositiveNumber = v => v > 0;
-const isPopulated = arr => arr.length > 0;
+const isPositiveNumber = v => v > 0
+const isPopulated = arr => arr.length > 0
 
 /**
  * Each ingredient can have one of two different structures, depending on the ingredient type.
  */
-const options = {discriminatorKey: 'ingredientType', _id: false, strict: true};
-const IngredientSchema = new mongoose.Schema({}, options);
+const options = { discriminatorKey: 'ingredientType', _id: false, strict: true }
+const IngredientSchema = new mongoose.Schema({}, options)
 
 const Recipe = new mongoose.Schema({
     title: {
@@ -22,11 +22,11 @@ const Recipe = new mongoose.Schema({
     serves: {
         type: Number,
         required: function () {
-            return this.makes === undefined;
+            return this.makes === undefined
         },
         validate: {
             validator: function (serves) {
-                return this.makes !== undefined ? false : serves > 0;
+                return this.makes !== undefined ? false : serves > 0
             },
             message: 'serves should be defined iff makes is undefined and must be greater than zero'
         }
@@ -34,11 +34,11 @@ const Recipe = new mongoose.Schema({
     makes: {
         type: Number,
         required: function () {
-            return this.serves === undefined;
+            return this.serves === undefined
         },
         validate: {
             validator: function (makes) {
-                return this.serves !== undefined ? false : makes > 0;
+                return this.serves !== undefined ? false : makes > 0
             },
             message: 'makes should be defined iff serves is undefined and must be greater than zero'
         }
@@ -100,7 +100,7 @@ const Recipe = new mongoose.Schema({
         type: String,
         required: true
     }
-}, {timestamps: true});
+}, { timestamps: true })
 
 
 Recipe.path('ingredientSections').schema.path('ingredients').discriminator('Quantified', new mongoose.Schema({
@@ -137,7 +137,7 @@ Recipe.path('ingredientSections').schema.path('ingredients').discriminator('Quan
         required: false,
         minlength: 1
     }
-}, {_id: false}));
+}, { _id: false }))
 
 Recipe.path('ingredientSections').schema.path('ingredients').discriminator('FreeText', new mongoose.Schema({
     description: {
@@ -145,13 +145,13 @@ Recipe.path('ingredientSections').schema.path('ingredients').discriminator('Free
         required: true,
         minlength: 1
     }
-}, {_id: false}));
+}, { _id: false }))
 
 Recipe.virtual('exportable')
     .get(function () {
         // Replace the 'Quantified' and 'FreeText' ingredient types with 0 and 1 respectively
         const ingSections = this.ingredientSections.map(section => Object.assign(
-            section.heading ? {heading: section.heading} : {},
+            section.heading ? { heading: section.heading } : {},
             {
                 ingredients: section.ingredients.map(ingredient => ingredient.ingredientType === 'Quantified' ?
                     {
@@ -167,7 +167,7 @@ Recipe.virtual('exportable')
                     }
                 )
             }
-        ));
+        ))
 
         return Object.assign(
             {
@@ -181,9 +181,9 @@ Recipe.virtual('exportable')
                 'imageUrl': this.imageUrl,
                 'lastUpdated': this.updatedAt.getTime()
             },
-            this.serves === undefined ? {makes: this.makes} : {serves: this.serves}
-        );
-    });
+            this.serves === undefined ? { makes: this.makes } : { serves: this.serves }
+        )
+    })
 
 
-module.exports = mongoose.model('IRecipe', Recipe);
+module.exports = mongoose.model('IRecipe', Recipe)

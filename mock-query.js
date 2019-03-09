@@ -12,9 +12,9 @@ class MockQuery {
      * @param recordPromises the records to be returned
      */
     constructor(recordPromises) {
-        this.recordsPromise = Promise.all(recordPromises);
-        this.skipAmount = 0;
-        this.limitAmount = recordPromises.length;
+        this.recordsPromise = Promise.all(recordPromises)
+        this.skipAmount = 0
+        this.limitAmount = recordPromises.length
     }
 
     /**
@@ -24,17 +24,17 @@ class MockQuery {
      * @returns {MockQuery} this query object (so calls can be chained)
      */
     sort(param) {
-        const prop = Object.getOwnPropertyNames(param)[0];
+        const prop = Object.getOwnPropertyNames(param)[0]
         this.recordsPromise = this.recordsPromise
             .then(records => {
                 records.sort((a, b) =>
                     param[prop] > 0 ?
                         (a[prop] < b[prop] ? -1 : 1) : // sort ascending
                         (a[prop] < b[prop] ? 1 : -1) // sort ascending
-                );
-                return records;
-            });
-        return this;
+                )
+                return records
+            })
+        return this
     }
 
     /**
@@ -43,8 +43,8 @@ class MockQuery {
      * @returns {MockQuery} this query object (so calls can be chained)
      */
     skip(amount) {
-        this.skipAmount += amount;
-        return this;
+        this.skipAmount += amount
+        return this
     }
 
     /**
@@ -53,8 +53,8 @@ class MockQuery {
      * @returns {MockQuery} this query object (so calls can be chained)
      */
     limit(amount) {
-        this.limitAmount = amount;
-        return this;
+        this.limitAmount = amount
+        return this
     }
 
     /**
@@ -68,4 +68,4 @@ class MockQuery {
     }
 }
 
-module.exports = MockQuery;
+module.exports = MockQuery

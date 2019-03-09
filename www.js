@@ -1,40 +1,40 @@
-'use strict';
+'use strict'
 
-const app = require('./server');
-const http = require('http');
+const app = require('./server')
+const http = require('http')
 
 /*** START THE SERVER ***/
 
-const port = process.env.PORT || 5000;
-app.set('port', port);
-const server = http.createServer(app);
+const port = process.env.PORT || 5000
+app.set('port', port)
+const server = http.createServer(app)
 
-server.listen(port);
+server.listen(port)
 
 /*** HANDLE EVENTS ***/
 
 server.on('listening', () => {
     if (process.env.NODE_ENV !== 'test') {
-        console.log(`Listening on port ${server.address().port}`);
+        console.log(`Listening on port ${server.address().port}`)
     }
-});
+})
 
 server.on('error', error => {
     if (error.syscall !== 'listen') {
-        throw error;
+        throw error
     }
 
     // handle specific listening errors with friendly messages
     switch (error.code) {
         case 'EACCESS':
-            console.error(`Port ${port} requires elevated privileges`);
-            break;
+            console.error(`Port ${port} requires elevated privileges`)
+            break
         case 'EADDRINUSE':
-            console.error(`Port ${port} is already in use`);
-            break;
+            console.error(`Port ${port} is already in use`)
+            break
         default:
-            throw error;
+            throw error
     }
-});
+})
 
-module.exports = server; // for testing
+module.exports = server // for testing

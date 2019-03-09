@@ -1,4 +1,4 @@
-const Enumerator = require('./bdd-enumerator/module');
+const Enumerator = require('./bdd-enumerator/module')
 
 /**
  * This function modifies the scenarios to consider numbers valid ( it only affects SimpleScenario objects )
@@ -7,9 +7,9 @@ const Enumerator = require('./bdd-enumerator/module');
  * @param scenarios the scenarios to modify
  */
 const allowNumbers = (scenarios) => scenarios.map(scenario => {
-    const valid = (typeof scenario.value === 'number') ? true : scenario.valid;
-    return new Enumerator.custom.scenario(scenario.desc, scenario.dependents, scenario.value, valid, scenario.set);
-});
+    const valid = (typeof scenario.value === 'number') ? true : scenario.valid
+    return new Enumerator.custom.scenario(scenario.desc, scenario.dependents, scenario.value, valid, scenario.set)
+})
 
 /**
  * This function modifies the scenarios to consider strings valid if they can be converted to numbers
@@ -18,9 +18,9 @@ const allowNumbers = (scenarios) => scenarios.map(scenario => {
  * @param scenarios the scenarios to modify
  */
 const allowNumericStrings = (scenarios) => scenarios.map(scenario => {
-    const valid = ((typeof scenario.value === 'string') && !Number.isNaN(Number(scenario.value))) ? true : scenario.valid;
-    return new Enumerator.custom.scenario(scenario.desc, scenario.dependents, scenario.value, valid, scenario.set);
-});
+    const valid = ((typeof scenario.value === 'string') && !Number.isNaN(Number(scenario.value))) ? true : scenario.valid
+    return new Enumerator.custom.scenario(scenario.desc, scenario.dependents, scenario.value, valid, scenario.set)
+})
 
 /**
  * This function modifies the scenarios to consider strings valid ( it only affects SimpleScenario objects )
@@ -29,9 +29,9 @@ const allowNumericStrings = (scenarios) => scenarios.map(scenario => {
  * @param scenarios the scenarios to modify
  */
 const allowStrings = (scenarios) => scenarios.map(scenario => {
-    const valid = (typeof scenario.value === 'string')  ? true : scenario.valid;
-    return new Enumerator.custom.scenario(scenario.desc, scenario.dependents, scenario.value, valid, scenario.set);
-});
+    const valid = (typeof scenario.value === 'string') ? true : scenario.valid
+    return new Enumerator.custom.scenario(scenario.desc, scenario.dependents, scenario.value, valid, scenario.set)
+})
 
 /**
  * The nonEmpty scenario with two different elements is prohibitively expensive to run for a complex object.
@@ -39,6 +39,6 @@ const allowStrings = (scenarios) => scenarios.map(scenario => {
  * @param scenarios
  */
 const simplifiedNonEmptyArray = (scenarios) => Enumerator.scenario.nonEmptyArray(scenarios)
-    .filter(scenario => scenario.dependents.length < 2);
+    .filter(scenario => scenario.dependents.length < 2)
 
-module.exports = {allowNumbers, allowNumericStrings, allowStrings, simplifiedNonEmptyArray};
+module.exports = { allowNumbers, allowNumericStrings, allowStrings, simplifiedNonEmptyArray }

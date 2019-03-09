@@ -1,12 +1,12 @@
-const MockRecord = require('../mock-database').record;
+const MockRecord = require('../mock-database').record
 
 const DatabaseModels = {
     Food: 'FOOD'
-};
+}
 
 class FoodRecord extends MockRecord {
     get exportable() {
-        return this;
+        return this
     }
 }
 
@@ -15,4 +15,4 @@ module.exports = {
     records: {
         Food: FoodRecord,
     }
-};
+}

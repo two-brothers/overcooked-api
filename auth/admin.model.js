@@ -1,12 +1,12 @@
-'use strict';
+'use strict'
 
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const Admin = new mongoose.Schema({
     profile: {
-            type: String,
-            required: true
-        }
-});
+        type: String,
+        required: true
+    }
+})
 
-module.exports = mongoose.model('IAdmin', Admin);
+module.exports = mongoose.model('IAdmin', Admin)

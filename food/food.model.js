@@ -1,7 +1,7 @@
-'use strict';
+'use strict'
 
-const mongoose = require('mongoose');
-const MaxUnitType = require('./unitTypes').length - 1;
+const mongoose = require('mongoose')
+const MaxUnitType = require('./unitTypes').length - 1
 
 const Food = new mongoose.Schema({
     name: {
@@ -41,7 +41,7 @@ const Food = new mongoose.Schema({
             message: 'There must be at least one conversion'
         }
     }
-});
+})
 
 // Remove the internal Mongoose parameters before exposing the record to the user
 Food.virtual('exportable')
@@ -51,6 +51,6 @@ Food.virtual('exportable')
             'name': this.name,
             'conversions': this.conversions
         }
-    });
+    })
 
-module.exports = mongoose.model('IFood', Food);
+module.exports = mongoose.model('IFood', Food)

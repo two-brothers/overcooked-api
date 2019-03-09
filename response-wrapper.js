@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 
 /**
  * For security reasons, it is common practice to wrap any server response in a JSON object with a 'data' field
@@ -6,7 +6,7 @@
  */
 
 const response_wrapper = {
-    wrap: (value) => ({data: value})
-};
+    wrap: (value) => ({ data: value })
+}
 
-module.exports = response_wrapper;
+module.exports = response_wrapper
