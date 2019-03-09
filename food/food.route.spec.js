@@ -404,7 +404,7 @@ describe('/v1/food', () => {
                 numPages.should.be.greaterThan(1) // precondition for this test
             })
 
-            it('should return the first page of items sorted by ID', () => {
+            it('should return the first page of items sorted by ID', () =>
                 request.get(endpoint)
                     .then(res => {
                         res.status.should.equal(200)
@@ -412,7 +412,7 @@ describe('/v1/food', () => {
                         res.body.data.food.length.should.equal(ITEMS_PER_PAGE)
                         res.body.data.food.should.deep.equal(sorted.slice(0, ITEMS_PER_PAGE))
                     })
-            })
+            )
         })
 
         describe('last page request', () => {

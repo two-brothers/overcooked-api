@@ -262,9 +262,9 @@ describe('/v1/recipes', () => {
                 it('should return the food items required by the recipe', () =>
                     request.get(endpoint)
                         .then(res => res.body.data.food)
-                        .then(foods => foods.map(food => {
-                            const foodRecord = foodRecords.filter(r => r.id === food.id)[0]
-                            food.should.deep.equal(foodRecord)
+                        .then(foods => Object.getOwnPropertyNames(foods).map(id => {
+                            const foodRecord = foodRecords.filter(r => r.id === id)[0]
+                            foods[id].should.deep.equal(foodRecord)
                         }))
                 )
             })
@@ -498,7 +498,7 @@ describe('/v1/recipes', () => {
                 request.get(endpoint)
                     .then(res => {
                         const flatten = (a, b) => a.concat(b)
-                        const foodIds = res.body.data.food.map(food => food.id)
+                        const foodIds = Object.getOwnPropertyNames(res.body.data.food)
                         res.body.data.recipes
                             .map(recipe => recipe.ingredientSections).reduce(flatten)
                             .map(section => section.ingredients).reduce(flatten)
@@ -508,7 +508,7 @@ describe('/v1/recipes', () => {
                     })
             )
 
-            it('should not return excessive food items', () => {
+            it('should not return excessive food items', () =>
                 request.get(endpoint)
                     .then(res => {
                         const flatten = (a, b) => a.concat(b)
@@ -517,25 +517,19 @@ describe('/v1/recipes', () => {
                             .map(section => section.ingredients).reduce(flatten)
                             .filter(ingredient => ingredient.ingredientType === QUANTIFIED_ING_TYPE)
                             .map(ingredient => ingredient.foodId)
-                        res.body.data.food.map(food =>
-                            requiredFoods.includes(food.id).should.equal(true)
+                        Object.getOwnPropertyNames(res.body.data.food).map(id =>
+                            requiredFoods.includes(id).should.equal(true)
                         )
                     })
-            })
-
-            it('should not return duplicate food items', () =>
-                request.get(endpoint)
-                    .then(res => res.body.data.food)
-                    .then(items => items.map((food, idx, arr) => arr.indexOf(food).should.equal(idx)))
             )
 
-            it('should match the food items in the database', () => {
+            it('should match the food items in the database', () =>
                 request.get(endpoint)
                     .then(res => res.body.data.food)
-                    .then(items => items.map(food =>
-                        food.should.deep.equal(foodRecords.filter(record => record.id === food.id)[0])
+                    .then(items => Object.getOwnPropertyNames(items).map(id =>
+                        items[id].should.deep.equal(foodRecords.filter(record => record.id === id)[0])
                     ))
-            })
+            )
         }
 
 
@@ -641,8 +635,8 @@ describe('/v1/recipes', () => {
                 request.get(endpoint).then(res => res.body.data.recipes.should.deep.equal([]))
             )
 
-            it('should return an empty recipe list', () =>
-                request.get(endpoint).then(res => res.body.data.food.should.deep.equal([]))
+            it('should return an empty food object', () =>
+                request.get(endpoint).then(res => res.body.data.food.should.deep.equal({}))
             )
 
             it('should set lastPage to true', () =>

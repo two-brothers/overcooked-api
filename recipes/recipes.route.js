@@ -119,6 +119,8 @@ router.get('/:id', (req, res, next) => {
                     .then(food => food ? food.exportable : null)
             ))
                 .then(foods => foods.filter(v => v))
+                // convert the array into an object
+                .then(foods => foods.reduce((obj, food) => ({ ...obj, [food.id]: food }), {}))
                 .then(foods => res.wrap({
                     recipe: recipe,
                     food: foods
@@ -273,6 +275,8 @@ router.get('/at/:page', (req, res, next) => {
                     .then(food => food ? food.exportable : null)
             ))
                 .then(foods => foods.filter(v => v))
+                // convert the array into an object
+                .then(foods => foods.reduce((obj, food) => ({ ...obj, [food.id]: food }), {}))
                 .then(foods => res.wrap({
                     recipes: recipes,
                     food: foods,
