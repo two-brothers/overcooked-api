@@ -49,6 +49,15 @@ app.use(session({
 app.disable('x-powered-by') // Don't reveal that we're using Express
 app.enable('trust proxy')
 
+/*** DISABLE CACHE ***/
+
+const disableCache = (req, res, next) => {
+    res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+    res.header('Expires', '-1')
+    res.header('Pragma', 'no-cache')
+    next()
+}
+
 /*** LOGGING ***/
 
 if (process.env.NODE_ENV !== 'test') {
@@ -75,9 +84,9 @@ passport.deserializeUser(auth.deserialise)
 
 const currentVersion = `/v1`
 app.get('/', (req, res, next) => res.redirect(`${currentVersion}/api`))
-app.use(`${currentVersion}/auth`, auth.route)
-app.use(`${currentVersion}/food`, food.route)
-app.use(`${currentVersion}/recipes`, recipes.route)
+app.use(`${currentVersion}/auth`, disableCache, auth.route)
+app.use(`${currentVersion}/food`, disableCache, food.route)
+app.use(`${currentVersion}/recipes`, disableCache, recipes.route)
 app.get('/cms', (req, res) => res.sendFile(path.join(__dirname, 'static', 'index.html')))
 app.use('/cms', express.static(path.join(__dirname, 'static')))
 
