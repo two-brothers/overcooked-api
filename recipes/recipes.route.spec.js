@@ -8,7 +8,7 @@ const sinon = require('sinon')
 
 const MockDatabase = require('../mock-database').db
 const DBStructure = require('./recipes.route.mock-db.spec')
-const Enumerator = require('../bdd-enumerator/module')
+const Enumerator = require('bdd-enumerator')
 const EnumeratorUtil = require('../enumerator-utility')
 const Food = require('../food/module').model
 const FoodSample = require('../food/module').sample

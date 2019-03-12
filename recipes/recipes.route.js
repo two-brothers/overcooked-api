@@ -32,11 +32,11 @@ router.post('/', ensureAuth, (req, res, next) => {
 
     const error = VLD.firstError(
         VLD.required(req.body.title, VLD.isNonEmptyString, 'Recipe title must be a non-empty string'),
-        VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number'),
-        VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number'),
+        VLD.optional(req.body.serves, VLD.isFinitePositiveNumber, 'Recipe serves (if defined) must be a positive number'),
+        VLD.optional(req.body.makes, VLD.isFinitePositiveNumber, 'Recipe makes (if defined) must be a positive number'),
         VLD.mutuallyExclusive([req.body.makes, req.body.serves], 'Recipe serves xor makes must be defined'),
-        VLD.required(req.body.prepTime, VLD.isPositiveNumber, 'Recipe prepTime must be a positive number'),
-        VLD.required(req.body.cookTime, VLD.isPositiveNumber, 'Recipe cookTime must be a positive number'),
+        VLD.required(req.body.prepTime, VLD.isFinitePositiveNumber, 'Recipe prepTime must be a positive number'),
+        VLD.required(req.body.cookTime, VLD.isFinitePositiveNumber, 'Recipe cookTime must be a positive number'),
         VLD.required(req.body.ingredientSections, VLD.isNonEmptyArray, 'Recipe ingredientSections must be a non-empty array'),
         () => VLD.firstError(...req.body.ingredientSections.map((section, secIdx) => () => VLD.firstError(
             VLD.optional(section.heading, VLD.isNonEmptyString, `Recipe ingredientSections[${secIdx}].heading (if it exists) must be a non-empty string`),
@@ -45,7 +45,7 @@ router.post('/', ensureAuth, (req, res, next) => {
                 VLD.required(ingredient.ingredientType, VLD.isBoundedInt(0, 1), `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].ingredientType must be either 0 or 1`),
                 ingredient.ingredientType === 0 ?
                     () => VLD.firstError(
-                        VLD.required(ingredient.amount, VLD.isPositiveNumber, `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`),
+                        VLD.required(ingredient.amount, VLD.isFinitePositiveNumber, `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`),
                         VLD.required(ingredient.unitIds, VLD.isNonEmptyArray, `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitIds must be a non-empty array`),
                         () => VLD.firstError(...ingredient.unitIds.map((unitId, unitIdIdx) =>
                             VLD.required(unitId, VLD.isBoundedInt(0, maxUnitType), `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitId[${unitIdIdx}] must be an integer between 0 and ${maxUnitType}`)
@@ -141,11 +141,11 @@ router.put('/:id', ensureAuth, (req, res, next) => {
 
     const error = VLD.firstError(
         VLD.optional(req.body.title, VLD.isNonEmptyString, 'Recipe title (if defined) must be a non-empty string'),
-        VLD.optional(req.body.serves, VLD.isPositiveNumber, 'Recipe serves (if defined) must be a positive number'),
-        VLD.optional(req.body.makes, VLD.isPositiveNumber, 'Recipe makes (if defined) must be a positive number'),
+        VLD.optional(req.body.serves, VLD.isFinitePositiveNumber, 'Recipe serves (if defined) must be a positive number'),
+        VLD.optional(req.body.makes, VLD.isFinitePositiveNumber, 'Recipe makes (if defined) must be a positive number'),
         () => [req.body.makes, req.body.serves].every(val => val !== undefined) && 'Recipe serves and makes cannot both be defined',
-        VLD.optional(req.body.prepTime, VLD.isPositiveNumber, 'Recipe prepTime (if defined) must be a positive number'),
-        VLD.optional(req.body.cookTime, VLD.isPositiveNumber, 'Recipe cookTime (if defined) must be a positive number'),
+        VLD.optional(req.body.prepTime, VLD.isFinitePositiveNumber, 'Recipe prepTime (if defined) must be a positive number'),
+        VLD.optional(req.body.cookTime, VLD.isFinitePositiveNumber, 'Recipe cookTime (if defined) must be a positive number'),
         VLD.optional(req.body.ingredientSections, VLD.isNonEmptyArray, 'Recipe ingredientSections (if defined) must be a non-empty array'),
         () => req.body.ingredientSections && VLD.firstError(...req.body.ingredientSections.map((section, secIdx) => () => VLD.firstError(
             VLD.optional(section.heading, VLD.isNonEmptyString, `Recipe ingredientSections[${secIdx}].heading (if it exists) must be a non-empty string`),
@@ -154,7 +154,7 @@ router.put('/:id', ensureAuth, (req, res, next) => {
                 VLD.required(ingredient.ingredientType, VLD.isBoundedInt(0, 1), `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].ingredientType must be either 0 or 1`),
                 ingredient.ingredientType === 0 ?
                     () => VLD.firstError(
-                        VLD.required(ingredient.amount, VLD.isPositiveNumber, `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`),
+                        VLD.required(ingredient.amount, VLD.isFinitePositiveNumber, `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].amount must be a positive number`),
                         VLD.required(ingredient.unitIds, VLD.isNonEmptyArray, `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitIds must be a non-empty array`),
                         () => VLD.firstError(...ingredient.unitIds.map((unitId, unitIdIdx) =>
                             VLD.required(unitId, VLD.isBoundedInt(0, maxUnitType), `Recipe ingredientSections[${secIdx}].ingredients[${ingIdx}].unitId[${unitIdIdx}] must be an integer between 0 and ${maxUnitType}`)

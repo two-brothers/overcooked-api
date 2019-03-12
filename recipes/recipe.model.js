@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 
 const MaxUnitType = require('../food/module').unitTypes.length - 1
 
-const isPositiveNumber = v => v > 0
+const isFinitePositiveNumber = v => v > 0 && v < Number.POSITIVE_INFINITY
 const isPopulated = arr => arr.length > 0
 
 /**
@@ -26,7 +26,7 @@ const Recipe = new mongoose.Schema({
         },
         validate: {
             validator: function (serves) {
-                return this.makes !== undefined ? false : serves > 0
+                return this.makes !== undefined ? false : serves > 0 && serves < Number.POSITIVE_INFINITY
             },
             message: 'serves should be defined iff makes is undefined and must be greater than zero'
         }
@@ -38,7 +38,7 @@ const Recipe = new mongoose.Schema({
         },
         validate: {
             validator: function (makes) {
-                return this.serves !== undefined ? false : makes > 0
+                return this.serves !== undefined ? false : makes > 0 && makes < Number.POSITIVE_INFINITY
             },
             message: 'makes should be defined iff serves is undefined and must be greater than zero'
         }
@@ -47,7 +47,7 @@ const Recipe = new mongoose.Schema({
         type: Number,
         required: true,
         validate: {
-            validator: isPositiveNumber,
+            validator: isFinitePositiveNumber,
             message: 'prepTime must be greater than zero'
         }
     },
@@ -55,7 +55,7 @@ const Recipe = new mongoose.Schema({
         type: Number,
         required: true,
         validate: {
-            validator: isPositiveNumber,
+            validator: isFinitePositiveNumber,
             message: 'cookTime must be greater than zero'
         }
     },
@@ -108,7 +108,7 @@ Recipe.path('ingredientSections').schema.path('ingredients').discriminator('Quan
         type: Number,
         required: true,
         validate: {
-            validator: isPositiveNumber,
+            validator: isFinitePositiveNumber,
             message: 'ingredient amount must be greater than zero'
         }
     },

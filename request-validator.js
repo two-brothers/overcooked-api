@@ -20,7 +20,7 @@ const mutuallyExclusive = (arr, error) => () => arr.filter(el => el === undefine
 
 // Various validation functions
 const isNonEmptyString = (value) => typeof value === 'string' && value.length > 0
-const isPositiveNumber = (value) => typeof value === 'number' && value > 0
+const isFinitePositiveNumber = (value) => typeof value === 'number' && value > 0 && value !== Number.POSITIVE_INFINITY
 const isBoundedInt = (min, max) => ((value) => Number.isInteger(value) && value >= min && value <= max)
 const isNonEmptyArray = (value) => Array.isArray(value) && value.length > 0
 const isOneOf = (options) => (value) => options.includes(value)
@@ -30,7 +30,7 @@ module.exports = {
     optional: optionalField,
     mutuallyExclusive: mutuallyExclusive,
     isNonEmptyString: isNonEmptyString,
-    isPositiveNumber: isPositiveNumber,
+    isFinitePositiveNumber: isFinitePositiveNumber,
     isBoundedInt: isBoundedInt,
     isNonEmptyArray: isNonEmptyArray,
     isOneOf: isOneOf,

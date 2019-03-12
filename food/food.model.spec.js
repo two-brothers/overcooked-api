@@ -1,7 +1,7 @@
 const Food = require('./food.model')
 const MaxUnitType = require('./unitTypes').length - 1
 const FoodSample = require('./food.sample')
-const Enumerator = require('../bdd-enumerator/module')
+const Enumerator = require('bdd-enumerator')
 const EnumeratorUtil = require('../enumerator-utility')
 const { property, object, nonEmptyString, boundedInteger, finitePositiveNumber, presence } = Enumerator.scenario
 const dependent = Enumerator.custom.dependent

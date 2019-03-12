@@ -2,7 +2,7 @@
 
 const Recipe = require('./recipe.model')
 const RecipesSample = require('./recipe.sample')
-const Enumerator = require('../bdd-enumerator/module')
+const Enumerator = require('bdd-enumerator')
 const EnumeratorUtil = require('../enumerator-utility')
 const MaxUnitType = require('../food/module').unitTypes.length - 1
 

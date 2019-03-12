@@ -38,7 +38,7 @@ router.post('/', ensureAuth, (req, res, next) => {
         VLD.required(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions must be a non-empty array'),
         () => VLD.firstError(...req.body.conversions.map((conversion, convIdx) => () => VLD.firstError(
             VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType), `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`),
-            VLD.required(conversion.ratio, VLD.isPositiveNumber, `Food conversions[${convIdx}].ratio must be a positive number`)
+            VLD.required(conversion.ratio, VLD.isFinitePositiveNumber, `Food conversions[${convIdx}].ratio must be a positive number`)
         )))
     )
 
@@ -83,7 +83,7 @@ router.put('/:id', ensureAuth, (req, res, next) => {
         VLD.optional(req.body.conversions, VLD.isNonEmptyArray, 'Food conversions (if defined) must be a non-empty array'),
         () => req.body.conversions && VLD.firstError(...req.body.conversions.map((conversion, convIdx) => () => VLD.firstError(
             VLD.required(conversion.unitId, VLD.isBoundedInt(0, maxUnitType), `Food conversions[${convIdx}].unitId must be an integer between 0 and ${maxUnitType}`),
-            VLD.required(conversion.ratio, VLD.isPositiveNumber, `Food conversions[${convIdx}].ratio must be a positive number`)
+            VLD.required(conversion.ratio, VLD.isFinitePositiveNumber, `Food conversions[${convIdx}].ratio must be a positive number`)
         )))
     )
 

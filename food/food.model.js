@@ -31,7 +31,7 @@ const Food = new mongoose.Schema({
                 type: Number,
                 required: true,
                 validate: {
-                    validator: ratio => ratio > 0,
+                    validator: ratio => ratio > 0 && ratio < Number.POSITIVE_INFINITY,
                     message: 'Conversion ratio must be greater than zero'
                 }
             }

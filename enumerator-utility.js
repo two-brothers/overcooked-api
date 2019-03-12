@@ -1,4 +1,4 @@
-const Enumerator = require('./bdd-enumerator/module')
+const Enumerator = require('bdd-enumerator')
 
 /**
  * This function modifies the scenarios to consider numbers valid ( it only affects SimpleScenario objects )
