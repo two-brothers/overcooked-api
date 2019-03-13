@@ -233,8 +233,12 @@ describe('/v1/food', () => {
                             send = request.put(endpoint).send(update)
                         })
 
-                        it('should return a NoContent response', () =>
-                            send.then(res => res.status.should.equal(204))
+                        it('should return a 200 (OK) response with the updated record', () =>
+                            send
+                                .then(res => {
+                                    res.status.should.equal(200)
+                                    res.body.data.should.deep.equal(expected)
+                                })
                         )
 
                         it('should update the database appropriately', () =>

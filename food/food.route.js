@@ -94,8 +94,10 @@ router.put('/:id', ensureAuth, (req, res, next) => {
         .catch(() => Promise.reject(RecordNotFound))
         .then(record => record ? record : Promise.reject(RecordNotFound))
         .then(record => Object.assign(record, req.body))
-        .then(record => record.save())
-        .then(() => res.status(204).send())
+        .then(record => {
+            record.save()
+            res.wrap(record.exportable)
+        })
         .catch(err => err === RecordNotFound ?
             next() : // let the 404 handler catch it
             next({ status: 500, message: 'Server Error: Unable to update the specified Food record' })

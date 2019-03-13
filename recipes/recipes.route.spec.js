@@ -327,8 +327,16 @@ describe('/v1/recipes', () => {
                             send = request.put(endpoint).send(update)
                         })
 
-                        it('should return a NoContent response', () =>
-                            send.then(res => res.status.should.equal(204))
+                        it('should return a 200 (OK) response with the updated record', () =>
+                            send
+                                .then(res => {
+                                    res.status.should.equal(200)
+                                    res.body.data.lastUpdated.should.not.be.undefined
+                                    should.equal(typeof res.body.data.lastUpdated, 'number')
+                                    res.body.data.lastUpdated.should.be.gte(expected.lastUpdated)
+                                    expected.lastUpdated = res.body.data.lastUpdated
+                                    res.body.data.should.deep.equal(expected)
+                                })
                         )
 
                         it('should update the database appropriately', () =>

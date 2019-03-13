@@ -241,6 +241,7 @@ class Record {
     save() {
         Record.removeUndefined(this)
         this.updateRecordFn(this)
+        return Promise.resolve(this)
     }
 
     /**
@@ -248,6 +249,7 @@ class Record {
      */
     remove() {
         this.removeRecordFn(this)
+        return Promise.resolve()
     }
 
     /**

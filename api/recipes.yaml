@@ -59,8 +59,10 @@ RecipesByIdPath:
         schema:
           $ref: '#/definitions/Recipe'
     responses:
-      204:
-        $ref: '#/recipes/RecipeSuccessfullyUpdatedResponse'
+      200:
+        description: The updated recipe
+        schema:
+          $ref: '#/definitions/Recipe'
       400:
         $ref: '#/recipes/InvalidRecipeStructureResponse'
       401:
@@ -134,9 +136,6 @@ RecipeDoesNotExistResponse:
   description: The specified recipe does not exist
   schema:
     $ref: '#/errors/Error'
-
-RecipeSuccessfullyUpdatedResponse:
-  description: The recipe was successfully updated
 
 RecipeSuccessfullyDeletedResponse:
   description: The recipe was successfully deleted

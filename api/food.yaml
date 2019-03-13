@@ -52,8 +52,10 @@ FoodRecordByIdPath:
         schem:
           $ref: '#/definitions/Food'
     responses:
-      204:
-        $ref: '#/food/FoodSuccessfullyUpdatedResponse'
+      200:
+        description: The updated food record
+        schema:
+          $ref: '#/definitions/Food'
       400:
         $ref: '#/food/InvalidFoodStructureResponse'
       401:
@@ -124,9 +126,6 @@ FoodRecordDoesNotExistResponse:
   description: The specified food record does not exist
   schema:
     $ref: '#/errors/Error'
-
-FoodSuccessfullyUpdatedResponse:
-  description: The food record was successfully updated
 
 FoodRecordSuccessfullyDeletedResponse:
   description: The food record was successfully deleted

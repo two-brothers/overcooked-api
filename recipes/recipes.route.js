@@ -214,7 +214,7 @@ router.put('/:id', ensureAuth, (req, res, next) => {
                     return recipe
                 })
                 .then(recipe => recipe.save())
-                .then(() => res.status(204).send())
+                .then(recipe => res.wrap(recipe.exportable))
         })
         .catch(err => err === RecordNotFound ?
             next() : // let the 404 handler catch it

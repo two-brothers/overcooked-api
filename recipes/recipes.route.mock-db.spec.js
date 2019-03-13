@@ -20,13 +20,13 @@ class RecipeRecord extends MockRecord {
     }
 
     save() {
-        super.save()
         this.ingredientSections.map(section => section.ingredients.map(ingredient => {
             if ([0, 1].includes(ingredient.ingredientType)) {
                 ingredient.ingredientType = ingredient.ingredientType === 0 ? 'Quantified' : 'FreeText'
             }
         }))
         this.lastUpdated = Date.now()
+        return super.save();
     }
 
     get exportable() {
