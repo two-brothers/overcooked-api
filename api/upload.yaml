@@ -1,0 +1,12 @@
+# Upload a file
+UploadPath:
+  post:
+    tags:
+      - Upload
+    summary: Upload a file
+    description: Saves the attached file (under the formData field "file") to the server
+    responses:
+      200:
+        description: The relative file URL
+        schema:
+          $ref: '#/definitions/NonEmptyString'

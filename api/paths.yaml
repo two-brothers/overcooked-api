@@ -37,3 +37,7 @@
 # READ a list of food items
 /v1/food/at/{page}:
   $ref: '#/food/FoodRecordsByPage'
+
+# Upload a file
+/v1/upload:
+  $ref: '#/upload/UploadPath'
