@@ -12,10 +12,12 @@ const swaggerUI = require('swagger-ui-express')
 const mongoose = require('mongoose')
 const MongoStore = require('connect-mongo')(session)
 const passport = require('passport')
+const fileUpload = require('express-fileupload')
 
 const food = require('./food/module')
 const recipes = require('./recipes/module')
 const auth = require('./auth/module')
+const upload = require('./upload/module')
 const api = require('./api/module')
 const DBNAME = require('./db.name.js')
 
@@ -83,12 +85,14 @@ passport.deserializeUser(auth.deserialise)
 /*** ROUTES ***/
 
 const currentVersion = `/v1`
+const resourceDir = path.join(__dirname, 'static')
 app.get('/', (req, res, next) => res.redirect(`${currentVersion}/api`))
 app.use(`${currentVersion}/auth`, disableCache, auth.route)
 app.use(`${currentVersion}/food`, disableCache, food.route)
 app.use(`${currentVersion}/recipes`, disableCache, recipes.route)
-app.get('/cms', (req, res) => res.sendFile(path.join(__dirname, 'static', 'index.html')))
-app.use('/cms', express.static(path.join(__dirname, 'static')))
+app.use(`${currentVersion}/upload`, fileUpload(), upload.route(resourceDir))
+app.get('/cms', (req, res) => res.sendFile(path.join(resourceDir, 'index.html')))
+app.use('/cms', express.static(resourceDir))
 
 /*** API Documentation ***/
 
