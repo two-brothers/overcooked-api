@@ -9,7 +9,7 @@ const mongoose = require('mongoose')
 
 chai.use(chaiHttp)
 
-describe.only('/upload', () => {
+describe('/upload', () => {
     let server
     let authenticated
 
@@ -64,7 +64,7 @@ describe.only('/upload', () => {
 
                 it('should return the file on request', () =>
                     chai.request(server)
-                        .get(`/cms${EXPECTED_URL}`) // the static files are saved under /cms
+                        .get(EXPECTED_URL)
                         .then(res => {
                             res.status.should.equal(200)
                             res.headers['content-type'].should.equal('application/octet-stream')

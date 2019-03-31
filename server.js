@@ -91,8 +91,7 @@ app.use(`${currentVersion}/auth`, disableCache, auth.route)
 app.use(`${currentVersion}/food`, disableCache, food.route)
 app.use(`${currentVersion}/recipes`, disableCache, recipes.route)
 app.use(`${currentVersion}/upload`, fileUpload(), upload.route(resourceDir))
-app.get('/cms', (req, res) => res.sendFile(path.join(resourceDir, 'index.html')))
-app.use('/cms', express.static(resourceDir))
+app.use('/', express.static(resourceDir))
 
 /*** API Documentation ***/
 
