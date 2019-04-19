@@ -7,7 +7,7 @@ const chaiHttp = require('chai-http')
 const sinon = require('sinon')
 
 const MockDatabase = require('../mock-database').db
-const DBStructure = require('./food.route.mock-db.spec')
+const DBStructure = require('../mock-db.spec')
 const Enumerator = require('bdd-enumerator')
 const EnumeratorUtil = require('../enumerator-utility')
 const Food = require('./food.model')

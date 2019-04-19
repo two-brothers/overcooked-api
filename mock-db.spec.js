@@ -1,4 +1,4 @@
-const MockRecord = require('../mock-database').record
+const MockRecord = require('./mock-database').record
 
 const DatabaseModels = {
     Food: 'FOOD',
