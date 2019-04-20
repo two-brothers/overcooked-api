@@ -7,12 +7,10 @@ const chaiHttp = require('chai-http')
 const sinon = require('sinon')
 
 const MockDatabase = require('../mock-database').db
-const DBStructure = require('../mock-db.spec')
+const SampleDB = require('../mock-db.spec')
 const Enumerator = require('bdd-enumerator')
 const EnumeratorUtil = require('../enumerator-utility')
-const Food = require('./food.model')
 const MaxUnitType = require('./unitTypes').length - 1
-const FoodSample = require('./food.sample')
 
 const should = chai.should()
 chai.use(chaiHttp)
@@ -38,9 +36,10 @@ describe('/v1/food', () => {
         sinon.stub(auth, 'ensureAuth').callsFake((req, res, next) => authenticated ? next() : res.status(401).send())
 
         database = new MockDatabase()
-        database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food)
-
-        server = require('../www')
+        return SampleDB.init(database)
+            .then(() => {
+                server = require('../www')
+            })
     })
 
     after(() => database.disconnect())
@@ -99,7 +98,7 @@ describe('/v1/food', () => {
 
             // base the new food on an existing one
             beforeEach(() =>
-                database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
+                database.getRecord(SampleDB.models.Food, MockDatabase.A_VALID_RECORD_ID)
                     .then(food => Object.assign({}, food))
                     .then(food => {
                         data = food
@@ -167,7 +166,7 @@ describe('/v1/food', () => {
 
             describe('the specified id is valid', () => {
                 it('should return an OK response with the corresponding record', () =>
-                    Promise.all(database.getAllRecords(DBStructure.models.Food)
+                    Promise.all(database.getAllRecords(SampleDB.models.Food)
                         .map(foodRecordPromise => foodRecordPromise.then(food =>
                                 request.get(`${endpoint}/${food.id}`)
                                     .then(res => {
@@ -186,7 +185,7 @@ describe('/v1/food', () => {
             let food
 
             beforeEach(() =>
-                database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
+                database.getRecord(SampleDB.models.Food, MockDatabase.A_VALID_RECORD_ID)
                     .then(record => {
                         food = record
                         update = {}
@@ -243,7 +242,7 @@ describe('/v1/food', () => {
 
                         it('should update the database appropriately', () =>
                             send
-                                .then(() => database.getRecord(DBStructure.models.Food, food.id))
+                                .then(() => database.getRecord(SampleDB.models.Food, food.id))
                                 .then(updated => {
                                     updated.should.deep.equal(expected)
                                 })
@@ -317,7 +316,7 @@ describe('/v1/food', () => {
                     const RecordFound = new Error('Record found after deletion')
 
                     beforeEach(() =>
-                        database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
+                        database.getRecord(SampleDB.models.Food, MockDatabase.A_VALID_RECORD_ID)
                             .then(record => {
                                 food = record
                                 endpoint = `${endpoint}/${food.id}`
@@ -329,10 +328,10 @@ describe('/v1/food', () => {
                     )
 
                     it('should delete the corresponding food item', () =>
-                        database.getRecord(DBStructure.models.Food, food.id)
+                        database.getRecord(SampleDB.models.Food, food.id)
                             .catch(() => Promise.reject(RecordNotFound))
                             .then(() => request.delete(endpoint))
-                            .then(() => database.getRecord(DBStructure.models.Food, food.id))
+                            .then(() => database.getRecord(SampleDB.models.Food, food.id))
                             .then(record => record ? Promise.reject(RecordFound) : null)
                     )
                 })
@@ -340,7 +339,7 @@ describe('/v1/food', () => {
 
             describe('user is not authenticated', () => {
                 beforeEach(() =>
-                    database.getRecord(DBStructure.models.Food, MockDatabase.A_VALID_RECORD_ID)
+                    database.getRecord(SampleDB.models.Food, MockDatabase.A_VALID_RECORD_ID)
                         .then(record => {
                             endpoint = `${endpoint}/${record.id}`
                             authenticated = false
@@ -361,7 +360,7 @@ describe('/v1/food', () => {
         const compareID = (a, b) => (a.id < b.id ? -1 : 1)
         before(() => {
             database.reset()
-            const recordPromises = database.getAllRecords(DBStructure.models.Food)
+            const recordPromises = database.getAllRecords(SampleDB.models.Food)
             numPages = Math.ceil(recordPromises.length / ITEMS_PER_PAGE)
             remainder = recordPromises.length % ITEMS_PER_PAGE
             return Promise.all(recordPromises)
@@ -459,7 +458,7 @@ describe('/v1/food', () => {
 
         describe('page is too high', () => {
             beforeEach(() => {
-                const pageIdx = Math.ceil(database.getAllRecords(DBStructure.models.Food).length / ITEMS_PER_PAGE) + 1
+                const pageIdx = Math.ceil(database.getAllRecords(SampleDB.models.Food).length / ITEMS_PER_PAGE) + 1
                 endpoint = `${endpoint}/${pageIdx}`
             })
 

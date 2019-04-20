@@ -2,8 +2,10 @@
 
 const route = require('./recipes.route')
 const model = require('./recipe.model')
+const sample = require('./recipe.sample')
 
 module.exports = {
-    route: route,
-    model: model
+    route,
+    model,
+    sample
 }

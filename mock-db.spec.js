@@ -1,6 +1,10 @@
 const MockRecord = require('./mock-database').record
+const Food = require('./food/module').model
+const FoodSample = require('./food/module').sample
+const Recipe = require('./recipes/module').model
+const RecipesSample = require('./recipes/module').sample
 
-const DatabaseModels = {
+const models = {
     Food: 'FOOD',
     Recipe: 'RECIPE'
 }
@@ -42,10 +46,23 @@ class RecipeRecord extends MockRecord {
     }
 }
 
+const QUANTIFIED_ING_TYPE = 0
+const init = (db) => {
+    db.addModel(Food, models.Food, FoodSample, FoodRecord)
+    // the sample recipes have Food ID indices instead of Food IDs. Substitute them.
+    const recipeSamples = JSON.parse(JSON.stringify(RecipesSample))
+    return Promise.all(db.getAllRecords(models.Food))
+        .then(foodRecords =>
+            recipeSamples.map(recipe => recipe.ingredientSections.map(sections => sections.ingredients.map(ingredient => {
+                if(ingredient.ingredientType === QUANTIFIED_ING_TYPE) {
+                    ingredient.foodId = foodRecords[ingredient.foodId].id
+                }
+            })))
+        )
+        .then(() => db.addModel(Recipe, models.Recipe, recipeSamples, RecipeRecord))
+}
+
 module.exports = {
-    models: DatabaseModels,
-    records: {
-        Food: FoodRecord,
-        Recipe: RecipeRecord
-    }
+    models,
+    init
 }

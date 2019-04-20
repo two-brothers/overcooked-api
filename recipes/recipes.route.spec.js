@@ -7,14 +7,10 @@ const chaiHttp = require('chai-http')
 const sinon = require('sinon')
 
 const MockDatabase = require('../mock-database').db
-const DBStructure = require('../mock-db.spec')
+const SampleDB = require('../mock-db.spec')
 const Enumerator = require('bdd-enumerator')
 const EnumeratorUtil = require('../enumerator-utility')
-const Food = require('../food/module').model
-const FoodSample = require('../food/module').sample
 const MaxUnitType = require('../food/module').unitTypes.length - 1
-const Recipe = require('./recipe.model')
-const RecipesSample = require('./recipe.sample')
 
 const should = chai.should()
 chai.use(chaiHttp)
@@ -79,19 +75,7 @@ describe('/v1/recipes', () => {
         sinon.stub(auth, 'ensureAuth').callsFake((req, res, next) => authenticated ? next() : res.status(401).send())
 
         database = new MockDatabase()
-        database.addModel(Food, DBStructure.models.Food, FoodSample, DBStructure.records.Food)
-        // the sample recipes have Food ID indices instead of Food IDs. Substitute them.
-        const recipeSamples = JSON.parse(JSON.stringify(RecipesSample))
-
-        return Promise.all(database.getAllRecords(DBStructure.models.Food))
-            .then(foodRecords => {
-                recipeSamples.map(recipe => recipe.ingredientSections.map(sections => sections.ingredients.map(ingredient => {
-                    if (ingredient.ingredientType === QUANTIFIED_ING_TYPE) {
-                        ingredient.foodId = foodRecords[ingredient.foodId].id
-                    }
-                })))
-            })
-            .then(() => database.addModel(Recipe, DBStructure.models.Recipe, recipeSamples, DBStructure.records.Recipe))
+        return SampleDB.init(database)
             .then(() => {
                 server = require('../www')
             })
@@ -156,7 +140,7 @@ describe('/v1/recipes', () => {
                 )
 
             beforeEach(() =>
-                database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                database.getRecord(SampleDB.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
                     .then(recipe => recipe.exportable)
                     .then(recipe => {
                         data = Object.assign({}, recipe)
@@ -228,7 +212,7 @@ describe('/v1/recipes', () => {
 
                 before(() => {
                     database.reset()
-                    return database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                    return database.getRecord(SampleDB.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
                         .then(record => record.exportable)
                         .then(record => {
                             // ensure the record has both ingredient types to exercise all code paths
@@ -240,7 +224,7 @@ describe('/v1/recipes', () => {
                             ingTypes.includes(FREETEXT_ING_TYPE).should.equal(true)
                             recipeRecord = record
                         })
-                        .then(() => Promise.all(database.getAllRecords(DBStructure.models.Food)))
+                        .then(() => Promise.all(database.getAllRecords(SampleDB.models.Food)))
                         .then(foods => {
                             foodRecords = foods
                         })
@@ -275,7 +259,7 @@ describe('/v1/recipes', () => {
             let recipe
 
             beforeEach(() =>
-                database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                database.getRecord(SampleDB.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
                     .then(record => record.exportable)
                     .then(record => {
                         recipe = record
@@ -341,7 +325,7 @@ describe('/v1/recipes', () => {
 
                         it('should update the database appropriately', () =>
                             send
-                                .then(() => database.getRecord(DBStructure.models.Recipe, recipe.id))
+                                .then(() => database.getRecord(SampleDB.models.Recipe, recipe.id))
                                 .then(updated => updated.exportable)
                                 .then(updated => {
                                     updated.lastUpdated.should.not.be.undefined
@@ -430,7 +414,7 @@ describe('/v1/recipes', () => {
                     const RecordFound = new Error('Record found after deletion')
 
                     beforeEach(() =>
-                        database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                        database.getRecord(SampleDB.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
                             .then(record => {
                                 recipe = record
                                 endpoint = `${endpoint}/${recipe.id}`
@@ -442,10 +426,10 @@ describe('/v1/recipes', () => {
                     )
 
                     it('should delete the corresponding recipe', () =>
-                        database.getRecord(DBStructure.models.Recipe, recipe.id)
+                        database.getRecord(SampleDB.models.Recipe, recipe.id)
                             .catch(() => Promise.reject(RecordNotFound))
                             .then(() => request.delete(endpoint))
-                            .then(() => database.getRecord(DBStructure.models.Recipe, recipe.id))
+                            .then(() => database.getRecord(SampleDB.models.Recipe, recipe.id))
                             .then(recipe => recipe ? Promise.reject(RecordFound) : null)
                     )
                 })
@@ -453,7 +437,7 @@ describe('/v1/recipes', () => {
 
             describe('user is not authenticated', () => {
                 beforeEach(() =>
-                    database.getRecord(DBStructure.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
+                    database.getRecord(SampleDB.models.Recipe, MockDatabase.A_VALID_RECORD_ID)
                         .then(record => {
                             endpoint = `${endpoint}/${record.id}`
                             authenticated = false
@@ -475,8 +459,8 @@ describe('/v1/recipes', () => {
         const compareTimestamp = (a, b) => (a.lastUpdated < b.lastUpdated ? 1 : -1)
         before(() => {
             database.reset()
-            const recipePromises = database.getAllRecords(DBStructure.models.Recipe)
-            const foodPromises = database.getAllRecords(DBStructure.models.Food)
+            const recipePromises = database.getAllRecords(SampleDB.models.Recipe)
+            const foodPromises = database.getAllRecords(SampleDB.models.Food)
             numPages = Math.ceil(recipePromises.length / ITEMS_PER_PAGE)
             remainder = recipePromises.length % ITEMS_PER_PAGE
             return Promise.all(recipePromises)
@@ -631,7 +615,7 @@ describe('/v1/recipes', () => {
 
         describe('page is too high', () => {
             beforeEach(() => {
-                const pageIdx = Math.ceil(database.getAllRecords(DBStructure.models.Recipe).length / ITEMS_PER_PAGE) + 1
+                const pageIdx = Math.ceil(database.getAllRecords(SampleDB.models.Recipe).length / ITEMS_PER_PAGE) + 1
                 endpoint = `${endpoint}/${pageIdx}`
             })
 

@@ -6,8 +6,8 @@ const unitTypes = require('./unitTypes')
 const sample = require('./food.sample')
 
 module.exports = {
-    route: route,
-    model: model,
-    unitTypes: unitTypes,
-    sample: sample
+    route,
+    model,
+    unitTypes,
+    sample
 }
