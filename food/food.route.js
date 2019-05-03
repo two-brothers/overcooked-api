@@ -2,8 +2,9 @@
 
 const express = require('express')
 const router = express.Router()
-const Food = require('./food.model')
 const UnitTypes = require('./unitTypes')
+const Food = require('./food.model')
+const Recipe = require('../recipes/module')
 const wrapper = require('../response-wrapper')
 const VLD = require('../request-validator')
 const auth = require('../auth/module')
@@ -105,6 +106,26 @@ router.put('/:id', ensureAuth, (req, res, next) => {
 })
 
 /**
+ * Retrieve all of the recipe ids corresponding to the specified food item
+ * @param id the id of the food item
+ * @return a promise containing the list of matching recipe ids
+ */
+const recipesContainingFood = (id) => {
+    return Recipe.find()
+        .then(recipes => recipes
+            .filter(recipe =>
+                recipe.exportable
+                    .ingredientSections
+                    .reduce((ingredients, section) => ingredients.concat(section.ingredients), [])
+                    .filter(ingredient => ingredient.ingredientType === 0) // Quantified
+                    .filter(ingredient => ingredient.foodId === id)
+                    .length > 0
+            )
+            .map(recipe => recipe.id)
+        )
+}
+
+/**
  * Delete the specified food record
  */
 router.delete('/:id', ensureAuth, (req, res, next) => {
@@ -112,8 +133,16 @@ router.delete('/:id', ensureAuth, (req, res, next) => {
 
     Food.findOne({ _id: req.params.id })
         .catch(() => Promise.reject(RecordNotFound))
-        .then(record => record ? record : Promise.reject(RecordNotFound))
-        .then(record => record.remove())
+        .then(foodItem => foodItem ? foodItem : Promise.reject(RecordNotFound))
+        .then(foodItem =>
+            recipesContainingFood(foodItem.id)
+                .then(recipeIds => recipeIds.length > 0 ?
+                    next({status: 400, message: `Food ${foodItem.id} is used in recipes [${recipeIds}] and cannot be deleted`}):
+                    foodItem
+                )
+        )
+
+        .then(foodItem => foodItem.remove())
         .then(() => res.status(204).send())
         .catch(err => err === RecordNotFound ?
             next() : // let the 404 handler catch it
