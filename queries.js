@@ -1,9 +1,11 @@
+const DB_PASSWORD = require('./postgres-password');
+
 const Pool = require('pg').Pool
 const pool = new Pool({
-  user: 'me',
+  user: 'overcooked_admin',
   host: 'localhost',
-  database: 'api',
-  password: 'password',
+  database: 'overcooked',
+  password: DB_PASSWORD,
   port: 5432
 })
 

@@ -12,13 +12,16 @@ node_modules
 log
 
 # database files
-data/db
+data
 
 # mocha reporter
 mochawesome-report
 
 # OAuth secrets
 auth/secrets
+
+# Postgres password
+postgres-password.js
 
 # The CMS build
 static
