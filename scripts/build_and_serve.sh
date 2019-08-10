@@ -3,4 +3,4 @@
 # NOTE: open the database in a separate terminal (with run_db.sh) first
 
 # launch the express server
-node postgres_server
+node postgres_server > log/serve.stdout 2> log/serve.stderr
